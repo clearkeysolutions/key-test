@@ -1,22 +1,25 @@
 # Pre-registered structured campaign design (SPEC §4). Locked (SHA-256 recorded)
 # at BASELINE_LOCKED; any later edit invalidates the lock.
-version: strata-v1
+version: strata-v2   # v2: Profile 0 only (P0 standard + P0.1 print), 1080p-first capture
 master_seed: "CKTEST-RH-001/structured/v1"   # public by design: the structured million is not a holdout
 cases_per_stratum: 50000
-profiles: [P1, P2, P3, P0]                   # 12,500 each per stratum
-severity_bins: 5                             # 2,500 cases per (stratum, profile, bin)
-per_profile_bin:                             # allocation inside each (stratum, profile, bin) cell
-  negative: 250                              # 10% hard negatives / near misses (reported separately)
-  sweep: 1100                                # 44% controlled single-factor sweep (>= 40% required)
-  joint: 1150                                # randomized valid joint conditions
+# Scope (owner decision 2026-11-08): harden Profile 0. P1/P2 will be deprecated and P3
+# needs no tests. The two P0 layouts are the "variants"; densities are balanced by cycling
+# every (version 1..31, ECC level) combination the production library supports.
+profiles: [P0, P0.1]                         # 25,000 each per stratum (P0 = Format 0.27, P0.1 = Format 0.28 print layout)
+severity_bins: 5                             # 5,000 cases per (stratum, variant, bin)
+per_profile_bin:                             # allocation inside each (stratum, variant, bin) cell
+  negative: 500                              # 10% hard negatives / near misses (reported separately)
+  sweep: 2200                                # 44% controlled single-factor sweep (>= 40% required)
+  joint: 2300                                # randomized valid joint conditions
+density_bands: {low: [1, 8], medium: [9, 16], high: [17, 24], very_high: [25, 31]}   # reporting bands of P0 version
 payload_family_size: 5                       # consecutive cases sharing one payload (clustering unit)
 shard_size: 1000
 
 # Declared minimum module resolution (px per Cartesian module pitch) for the
-# clean exact round-trip gate. Sources: docs/OVERVIEW.md and spec 0.27 in the
-# pinned ckey commit. P1 is not stated there; 6 px/module is an assumption the
-# owner must confirm (CONTEXT.md, open issue OI-3).
-declared_min_ppm: {P0: 6.0, P1: 6.0, P2: 5.0, P3: 5.5}
+# clean exact round-trip gate. Source: spec 0.27 ("all 31 versions decode at 6 px per module
+# clean"). P0.1 states no separate figure; the same 6 px/module is assumed (CONTEXT.md OI-3).
+declared_min_ppm: {P0: 6.0, P0.1: 6.0}
 
 # Module geometry used to convert physical size <-> px per module.
 module_geometry:
@@ -38,8 +41,8 @@ negatives:
   kinds:
     random_codeword: REJECT
     heavy_corruption: NO_WRONG
-    t_plus_one: NO_WRONG        # P1, P2 only
-    crc_forge: NO_WRONG         # P1, P2 only
+    t_plus_one: NO_WRONG        # one byte beyond block 0's correction bound (spec 0.27 block layout)
+    crc_forge: NO_WRONG         # RS-consistent codeword with a stale CRC-32C (independent RS oracle)
     splice: NO_WRONG
     mirror: NO_WRONG
     foreign_grid: REJECT

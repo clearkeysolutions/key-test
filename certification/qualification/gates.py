@@ -45,7 +45,7 @@ def evaluate(con: sqlite3.Connection, data_dir: Path, locked_sha: str | None, ba
     any_cases = False
     for prof, dmin in strata["declared_min_ppm"].items():
         n2, k2 = count("""SELECT COUNT(*), COALESCE(SUM(success),0) FROM cases WHERE cohort='structured' AND stratum='S01' AND neg_kind='none'
-                          AND expected_outcome='DECODE' AND profile=? AND ppm_min >= ? AND phys_class!='UNRECOVERABLE'""", (prof, dmin))
+                          AND expected_outcome='DECODE' AND variant=? AND ppm_min >= ? AND phys_class!='UNRECOVERABLE'""", (prof, dmin))
         g2[prof] = {"cases": n2, "success": int(k2), "failures": n2 - int(k2), "declared_min_ppm": dmin}
         any_cases |= n2 > 0
         ok_all &= n2 == int(k2)

@@ -17,3 +17,14 @@ holdout:
   cases: 100000                    # 5,000 per stratum; sealed seed created at BASELINE_LOCKED
 golden:
   per_stratum: 1000                # regression suite: first N structured cases per stratum (by plan order)
+storage:
+  r2:
+    bucket: ckey-hardening-test   # Cloudflare R2; credentials only via environment (scripts/server/r2.env)
+    upload_on_seal: true          # each sealed shard is uploaded right away (3 objects / 1,000 cases)
+evidence:
+  max_svg_files: 1500             # gzipped SVGs committed to git (counterexamples, wrong payloads, vectors)
+  max_total_mb: 40                # hard cap for everything under evidence/
+ml:
+  train_cases: 40000              # mltrain cohort (own seed; not counted); ~2.4 KB per border candidate
+  eval_cases: 6000                # held-out mltrain cases and structured failures for the ablation
+  epochs: 15

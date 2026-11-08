@@ -1,2 +1,4 @@
-# Python dependencies of the orchestration/analysis layer (everything else is the standard library).
-PyYAML==6.0.2
+# Python dependencies of the orchestration/analysis layer (versions support Python 3.10-3.14).
+PyYAML>=6.0.3,<7
+numpy>=2.3,<3          # ML training (ml/train.py)
+boto3>=1.35,<2         # Cloudflare R2 uploads (storage/r2.py)

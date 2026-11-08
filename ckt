@@ -15,6 +15,9 @@
   ./ckt archive --dest DIR          copy permanent assets with SHA256SUMS (never deletes anything)
   ./ckt smoke [--cases N]           one-command local smoke run in a scratch directory
   ./ckt triage [--cohort C]         categorized counterexamples + proposed conformance vectors
+  ./ckt sync                        upload sealed shards, manifests, reports, image bundles to R2 (content-addressed)
+  ./ckt export-evidence [--commit]  write small permanent evidence (hashes, manifests, reports, SVG.gz) into evidence/
+  ./ckt ml [--cases N]              build the ML localization dataset, train, evaluate vs classical, store artifacts
 """
 from __future__ import annotations
 
@@ -200,7 +203,7 @@ def smoke(cases: int) -> None:
     i = 0
     strata = sorted(STRATA)
     while len(out) < cases:
-        s, p, b = strata[i % 20], PROFILES[(i // 20) % 4], (i // 80) % 5
+        s, p, b = strata[i % 20], PROFILES[(i // 20) % len(PROFILES)], (i // 80) % 5
         mode = ("sweep", "joint", "negative")[i % 3]
         out.append(make_case("smoke", "CKTEST-RH-001/smoke", s, p, b, mode, i))
         i += 1
@@ -232,6 +235,9 @@ def main() -> None:
     sp = sub.add_parser("archive"); sp.add_argument("--dest", type=Path, required=True)
     sp = sub.add_parser("smoke"); sp.add_argument("--cases", type=int, default=120)
     sp = sub.add_parser("triage"); sp.add_argument("--cohort", default="structured")
+    sub.add_parser("sync")
+    sp = sub.add_parser("export-evidence"); sp.add_argument("--commit", action="store_true")
+    sp = sub.add_parser("ml"); sp.add_argument("--cases", type=int, default=None); sp.add_argument("--eval-cases", type=int, default=None)
     a = ap.parse_args()
     if a.cmd == "smoke":
         return smoke(a.cases)
@@ -272,6 +278,21 @@ def main() -> None:
             sys.exit(1 if verify(c, a.sample) else 0)
         elif a.cmd == "archive":
             archive(c, a.dest)
+        elif a.cmd == "sync":
+            from storage.r2 import R2
+            r2 = R2(c.data)
+            if not r2.enabled:
+                raise SystemExit("R2 not configured: export R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY (see scripts/server/r2.env.example)")
+            print(json.dumps(r2.sync(), indent=1))
+        elif a.cmd == "export-evidence":
+            from storage.evidence import export
+            export(c.data)
+            if a.commit:
+                subprocess.run(["git", "-C", str(ROOT), "add", "evidence"], check=True)
+                subprocess.run(["git", "-C", str(ROOT), "commit", "-m", f"Campaign evidence at state {c.state}", "--", "evidence"], check=False)
+        elif a.cmd == "ml":
+            from ml import pipeline as mlp
+            mlp.run(c, cases=a.cases, eval_cases=a.eval_cases)
         elif a.cmd == "triage":
             from analysis.metrics import db as dbm
             from analysis.triage import triage as tri

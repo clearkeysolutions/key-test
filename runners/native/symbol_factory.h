@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 #include <cstdint>
 #include <cstdlib>
@@ -49,6 +50,50 @@ inline std::vector<uint8_t> rs_parity(const std::vector<uint8_t> &data, int np) 
     }
     return std::vector<uint8_t>(rem.end() - np, rem.end());
 }
+
+// ---- Profile 0 block structure (spec 0.27 "Frame and error correction") ------------------
+// C codeword bytes form B = ceil(C/255) blocks; block b has n_b = floor(C/B) + (b < C mod B);
+// parity 2*floor((pct*n_b + 100)/200), min 2, pct = 14/28/44/60 for L/M/Q/H. Frame bytes fill
+// the data portions in order; blocks are byte-interleaved (index j outer, block b inner).
+struct P0Blocks {
+    std::vector<int> n, parity;
+    std::vector<std::vector<int>> pos;  // pos[b][j] = index in the interleaved codeword
+    static P0Blocks of(int C, int level) {
+        static const int pct[4] = {14, 28, 44, 60};
+        P0Blocks B;
+        const int nb = (C + 254) / 255;
+        for (int b = 0; b < nb; ++b) {
+            const int n = C / nb + (b < C % nb ? 1 : 0);
+            B.n.push_back(n);
+            B.parity.push_back(std::max(2, 2 * ((pct[level & 3] * n + 100) / 200)));
+        }
+        B.pos.assign(nb, {});
+        int idx = 0, maxn = 0;
+        for (int v : B.n) maxn = std::max(maxn, v);
+        for (int j = 0; j < maxn; ++j) for (int b = 0; b < nb; ++b) if (j < B.n[b]) B.pos[b].push_back(idx++);
+        return B;
+    }
+    // Recompute every block's parity from its data bytes (the independent oracle).
+    void reparity(uint8_t *cw) const {
+        for (size_t b = 0; b < n.size(); ++b) {
+            const int k = n[b] - parity[b];
+            std::vector<uint8_t> data(k);
+            for (int j = 0; j < k; ++j) data[j] = cw[pos[b][j]];
+            const auto par = rs_parity(data, parity[b]);
+            for (int j = 0; j < parity[b]; ++j) cw[pos[b][k + j]] = par[j];
+        }
+    }
+    bool parity_matches(const uint8_t *cw) const {
+        std::vector<uint8_t> copy(cw, cw + std::accumulate(n.begin(), n.end(), 0));
+        reparity(copy.data());
+        return std::equal(copy.begin(), copy.end(), cw);
+    }
+    // Interleaved index of frame (data) byte i.
+    int frame_byte(int i) const {
+        for (size_t b = 0; b < n.size(); ++b) { const int k = n[b] - parity[b]; if (i < k) return pos[b][i]; i -= k; }
+        return -1;
+    }
+};
 
 // ---- payloads -----------------------------------------------------------------------
 inline std::vector<uint8_t> make_payload(const std::string &pattern, size_t n, uint64_t seed) {
@@ -184,7 +229,14 @@ inline SymbolArt build_symbol(const CaseSpec &c, uint64_t salt = 0) {
     cw_len = a.profile == 0 ? a.p0.codeword_length : a.profile == 1 ? 77 : a.profile == 2 ? 255 : CKEY_EXTENDED_CODEWORD_BYTES;
     (void)cw;
 
-    // Independent RS check of the production parity (single-block profiles).
+    // Independent RS check of the production parity: P0 per block (deinterleaved), P1/P2 single block.
+    P0Blocks blocks;
+    if (a.profile == 0) {
+        blocks = P0Blocks::of(static_cast<int>(cw_len), static_cast<int>(a.p0.ecc_level));
+        a.rs_verified = blocks.parity_matches(code) ? 1 : 0;
+        int tmax = 0; for (size_t b = 0; b < blocks.n.size(); ++b) tmax = std::max(tmax, blocks.parity[b] / 2);
+        a.ecc_fraction = static_cast<double>(blocks.parity[0] / 2) / blocks.n[0];
+    }
     if (a.profile == 1 || a.profile == 2) {
         const int k = a.profile == 1 ? 26 : 210;
         const std::vector<uint8_t> data(code, code + k), parity(code + k, code + cw_len);
@@ -203,14 +255,26 @@ inline SymbolArt build_symbol(const CaseSpec &c, uint64_t salt = 0) {
         const double f = std::clamp(c.neg_param, 0.0, 1.0);
         for (size_t i = 0; i < cw_len; ++i) if (neg.unit() < f) code[i] ^= static_cast<uint8_t>(1 + neg.below(255));
         expect("NO_WRONG");
+    } else if (kind == "t_plus_one" && a.profile == 0) {
+        // One more byte error than block 0 can correct (t_0 = parity_0 / 2): RS must fail or
+        // miscorrect, and a miscorrection must then be caught by the CRC.
+        const int t = blocks.parity[0] / 2, n0 = blocks.n[0];
+        std::vector<int> idx(n0); std::iota(idx.begin(), idx.end(), 0);
+        for (int i = 0; i < t + 1 && i < n0; ++i) { const int j = i + static_cast<int>(neg.below(static_cast<uint32_t>(n0 - i))); std::swap(idx[i], idx[j]); code[blocks.pos[0][idx[i]]] ^= static_cast<uint8_t>(1 + neg.below(255)); }
+        expect("NO_WRONG");
+    } else if (kind == "crc_forge" && a.profile == 0) {
+        if (a.rs_verified != 1) { a.error = "independent RS did not reproduce production P0 parity; cannot forge"; return a; }
+        code[blocks.frame_byte(8)] ^= static_cast<uint8_t>(1 + neg.below(255));  // first payload byte; CRC now stale
+        blocks.reparity(code);                                                   // every block RS-consistent again
+        expect("NO_WRONG");
     } else if (kind == "t_plus_one") {
-        if (a.profile != 1 && a.profile != 2) { a.error = "t_plus_one needs P1 or P2"; return a; }
+        if (a.profile != 1 && a.profile != 2) { a.error = "t_plus_one needs P0, P1 or P2"; return a; }
         const int t = a.profile == 1 ? 25 : 22;
         std::vector<int> idx(cw_len); for (size_t i = 0; i < cw_len; ++i) idx[i] = static_cast<int>(i);
         for (int i = 0; i < t + 1; ++i) { const int j = i + static_cast<int>(neg.below(static_cast<uint32_t>(cw_len - i))); std::swap(idx[i], idx[j]); code[idx[i]] ^= static_cast<uint8_t>(1 + neg.below(255)); }
         expect("NO_WRONG");
     } else if (kind == "crc_forge") {
-        if (a.profile != 1 && a.profile != 2) { a.error = "crc_forge needs P1 or P2"; return a; }
+        if (a.profile != 1 && a.profile != 2) { a.error = "crc_forge needs P0, P1 or P2"; return a; }
         if (a.rs_verified != 1) { a.error = "independent RS did not reproduce production parity; cannot forge"; return a; }
         const int k = a.profile == 1 ? 26 : 210;
         code[6] ^= static_cast<uint8_t>(1 + neg.below(255));  // first payload byte; CRC now stale
@@ -238,6 +302,7 @@ inline SymbolArt build_symbol(const CaseSpec &c, uint64_t salt = 0) {
     else if (a.profile == 2) a.svg = render_with(p2, ckey_render_text_svg);
     else a.svg = render_with(p3, ckey_render_extended_svg);
     if (a.svg.size() < 64) a.error = "renderer produced no SVG";
+    if (a.profile == 0 && kind == "none" && a.rs_verified != 1) a.error = "independent RS disagrees with production P0 parity (oracle or format mismatch)";
     return a;
 }
 

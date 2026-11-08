@@ -26,7 +26,7 @@ from generator.strata import STRATA, make_case
 CFG = load_yaml("strata.yaml")
 
 
-PILOT_CELL = {"negative": 3, "sweep": 11, "joint": 11}   # 25 per cell x 400 cells = 10,000
+PILOT_CELL = {"negative": 5, "sweep": 22, "joint": 23}   # 50 per cell x 200 cells = 10,000
 
 
 def cell_counts(scale_div: int = 1, cohort: str = "") -> dict:
@@ -87,10 +87,11 @@ def build(cohort: str, data_dir: Path, master: str, scale_div: int = 1, workers:
     out_dir.mkdir(parents=True, exist_ok=True)
     idx = design_index(cohort, scale_div)
     random.Random(derive_seed(order_seed or master, "shuffle", cohort)).shuffle(idx)
-    size = CFG["shard_size"]
+    size = CFG["shard_size"] if test_scale() == 1 else 100
     extra = holdout_extra if cohort == "holdout" else None
     jobs = [(str(out_dir), i // size, cohort, master, idx[i:i + size], extra) for i in range(0, len(idx), size)]
-    with ProcessPoolExecutor(max_workers=workers or os.cpu_count()) as ex:
+    import multiprocessing  # Python 3.14 defaults to forkserver on Linux; fork keeps imports simple
+    with ProcessPoolExecutor(max_workers=workers or os.cpu_count(), mp_context=multiprocessing.get_context("fork")) as ex:
         shards = list(ex.map(_write_shard, jobs, chunksize=4))
     manifest = {"cohort": cohort, "cases": sum(s["cases"] for s in shards), "shards": shards,
                 "design": {"scale_div": scale_div, "cell_counts": cell_counts(scale_div, cohort), "strata": len(STRATA), "profiles": list(PROFILES)},
@@ -165,7 +166,7 @@ def write_cases(data_dir: Path, plan_set: str, cases: list[dict], meta: dict | N
     if out_dir.exists() and any(out_dir.iterdir()):
         raise SystemExit(f"plan set {plan_set} already exists; plans are immutable")
     out_dir.mkdir(parents=True, exist_ok=True)
-    size = CFG["shard_size"]
+    size = CFG["shard_size"] if test_scale() == 1 else 100
     shards = []
     for i in range(0, len(cases), size):
         chunk = [strip_private(dict(c))[0] for c in cases[i:i + size]]

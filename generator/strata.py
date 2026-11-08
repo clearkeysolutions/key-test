@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 import random
 
-from generator.common import derive_seed, load_yaml, log_uniform, rng_for
+from generator.common import derive_seed, load_yaml, log_uniform, rng_for, variant_of
 from generator.geometry.devices import (DEVICES, device_cycle, device_params, frame_of, place, rotation_extent)
 from generator.negative_cases.negatives import negative_fields
 from generator.payloads.payloads import PATTERNS, capacity_of, symbol_params
@@ -24,6 +24,13 @@ CFG = load_yaml("strata.yaml")
 STRATA: dict = CFG["strata"]
 DECLARED_MIN = CFG["declared_min_ppm"]
 GEOM = CFG["module_geometry"]
+
+def vmin(p: dict) -> float:
+    """Declared minimum px/module of the case's variant."""
+    return DECLARED_MIN[variant_of(p)]
+
+
+ALLOW_4K = load_yaml("devices.yaml").get("allow_4k_fallback", False)
 
 DARK = [20, 20, 20]
 LIGHT = [235, 235, 235]
@@ -41,6 +48,7 @@ class Geo:
         self.keep = "none"        # protected quantity: "ppm" (ppm is the factor), "roll", or "none"
         self.crop = 0.0           # S16: deliberate fraction of the symbol outside the frame
         self.keep_module = False  # S13: the physical module (screen px per module) is the factor
+        self.notes: list[str] = []
 
 
 # ---------------------------------------------------------------- base conditions
@@ -52,7 +60,7 @@ def base_clean(p: dict, g: Geo, r: random.Random, k: int) -> None:
               "center_x": round(r.uniform(0.45, 0.55), 4), "center_y": round(r.uniform(0.45, 0.55), 4),
               "illum": round(r.uniform(1.0, 1.5), 4), "clutter": 0.15})
     g.module_mm = log_uniform(r, 0.3, 1.2)
-    g.ppm = DECLARED_MIN[p["profile"]] * r.uniform(1.3, 2.2)
+    g.ppm = vmin(p) * r.uniform(1.3, 2.2)
     g.tilt = math.hypot(p["yaw"], p["pitch"])
 
 
@@ -87,10 +95,10 @@ def base_joint(p: dict, g: Geo, r: random.Random, k: int, scale: float = 1.0) ->
         p["tone"] = 1
     if r.random() < 0.2:
         p["video_range"] = 1
-    if r.random() < 0.1 and p["frame_w"] >= 2160:
-        p["rescale"] = 0.5
+    if r.random() < 0.1:
+        p["rescale"] = 0.75 if p["frame_w"] >= 1080 else 1.0  # preview / downscaled analysis path
     g.module_mm = log_uniform(r, 0.25, 1.5)
-    g.ppm = DECLARED_MIN[p["profile"]] * log_uniform(r, 0.9, 3.0)
+    g.ppm = vmin(p) * log_uniform(r, 0.9, 3.0)
     g.tilt = math.hypot(p["yaw"], p["pitch"])
 
 
@@ -104,13 +112,20 @@ def sample_in_bin(stratum: str, b: int, r: random.Random) -> float:
 
 
 def feasible_max_ppm(p: dict, g: Geo, extent: float) -> float:
+    """Largest px/module at which the symbol fits the case's own frame; a 4K frame only if
+    even the declared minimum cannot fit there (dense versions)."""
+    tilt = 1 + 0.6 * math.sin(math.radians(min(80, g.tilt)))
+    w, h = frame_of(p["device"])
+    own = 0.9 * min(w, h) / (g.cpm * extent * tilt)
+    if own >= vmin(p) * 1.05 or not ALLOW_4K:
+        return own
     w, h = frame_of("phone_4k_wide")
-    return 0.9 * min(w, h) / (g.cpm * extent * (1 + 0.6 * math.sin(math.radians(min(80, g.tilt)))))
+    return 0.9 * min(w, h) / (g.cpm * extent * tilt)
 
 
 def apply_S01(p, g, r, x, mode):
     # Clean references. Sweep: mathematically perfect raster (no camera); joint: clean physical capture.
-    lo = DECLARED_MIN[p["profile"]]
+    lo = vmin(p)
     if mode in ("sweep",):
         p.update({"ideal": 1, "roll": float(90 * r.randint(0, 3)), "yaw": 0.0, "pitch": 0.0})
         g.tilt = 0.0
@@ -121,6 +136,8 @@ def apply_S01(p, g, r, x, mode):
     g.ppm = math.exp(math.log(lo) + x * (math.log(hi) - math.log(lo)))
     if p.get("ideal"):
         p["ideal_ppm"] = round(g.ppm, 4)
+        if g.ppm < lo:
+            g.notes.append("below_declared_min_to_fit")
     g.keep = "ppm"
 
 
@@ -134,9 +151,9 @@ def apply_S03(p, g, r, x, mode):
     # Subpixel phase: centre at arbitrary sub-pixel offsets; downsampling in 30% (4K -> preview path).
     p["center_x"] = round(r.uniform(0.4, 0.6) + r.random() / p["frame_w"], 6)
     p["center_y"] = round(r.uniform(0.4, 0.6) + r.random() / p["frame_h"], 6)
-    if r.random() < 0.3 and p["frame_w"] >= 2160:
+    if r.random() < 0.3:
         f = r.choice([0.5, 0.6667, 0.75])
-        if x / f * g.cpm * 1.1 <= 0.9 * 2160:  # the pre-scale symbol must still fit the sensor frame
+        if x / f * g.cpm * 1.1 <= 0.9 * min(p["frame_w"], p["frame_h"]):  # the pre-scale symbol must still fit the sensor frame
             p["rescale"] = f
 
 
@@ -258,7 +275,7 @@ def apply_S14(p, g, r, x, mode):
         p["tone"] = 1
     if r.random() < 0.3:
         p["video_range"] = 1
-    if r.random() < 0.3 and p["frame_w"] >= 2160:
+    if r.random() < 0.3:
         p["rescale"] = r.choice([0.5, 0.75])
 
 
@@ -284,7 +301,7 @@ def apply_S16(p, g, r, x, mode):
         p.update({"clutter": round(r.uniform(0.3, 0.8), 3), "distractors": r.randint(6, 12)})
     elif cls == 3 and p.get("neg_kind", "none") == "none":
         p.update({"second_code": 1, "expected": "DECODE_ANY_OF", "clutter": round(r.uniform(0.2, 0.6), 3)})
-        g.ppm = min(g.ppm, DECLARED_MIN[p["profile"]] * 1.6)
+        g.ppm = min(g.ppm, vmin(p) * 1.6)
     else:
         g.crop = r.uniform(0.03, 0.25)
     p["severity_detail"] = None
@@ -296,7 +313,7 @@ def apply_S17(p, g, r, x, mode):
     p["rot_blur_deg"] = round(x * 360.0 / slots, 5)
     if r.random() < 0.3:
         p.update({"occl_kind": "scratch", "occl_frac": round(r.uniform(0.005, 0.03), 4), "occl_count": 1})
-    g.ppm = DECLARED_MIN[prof] * r.uniform(1.0, 1.6)
+    g.ppm = vmin(p) * r.uniform(1.0, 1.6)
 
 
 def apply_S18(p, g, r, x, mode):
@@ -315,7 +332,7 @@ def apply_S19(p, g, r, x, mode):
     if cls in (0, 4):
         p["k1"] = round(r.uniform(-0.05, 0.05), 4)
     if cls in (1, 4):
-        p.update({"device": "phone_4k_ultrawide", **{k: v for k, v in device_params("phone_4k_ultrawide").items() if k not in ("sharpen", "denoise")}})
+        p.update({"device": "phone_1080p_ultrawide", **{k: v for k, v in device_params("phone_1080p_ultrawide").items() if k not in ("sharpen", "denoise")}})
         p["k1"] = round(r.uniform(-0.15, -0.08), 4)
         p["center_x"] = round(r.choice([0.22, 0.78]), 3)
         p["center_y"] = round(r.choice([0.18, 0.82]), 3)
@@ -343,40 +360,66 @@ NEEDS_K = {"S11", "S12", "S13", "S20"}
 
 # ---------------------------------------------------------------- placement & feasibility
 def ensure_fit(p: dict, g: Geo) -> bool:
-    """Make the symbol fit the frame (unless a crop is intended) without changing the protected quantity."""
-    need = g.ppm * g.cpm * (1 + 0.6 * math.sin(math.radians(min(80, g.tilt)))) / p.get("rescale", 1.0)
-    candidates = [p["device"]] + [d for d in ("phone_4k_wide",) if d != p["device"]]
-    for dev in candidates:
-        w, h = frame_of(dev)
-        max_extent = 0.9 * min(w, h) / need
+    """Make the symbol fit the frame (unless a crop is intended).
+
+    px/module is a nuisance variable in most strata: the case first moves the camera back
+    (lower px/module) until the symbol fits its OWN frame, exactly as a user would. Only
+    if even the declared minimum px/module cannot fit (the densest versions) does it move
+    to a larger frame (720p -> 1080p -> 4K; 4K only if devices.yaml allow_4k_fallback).
+    When px/module IS the stratum's factor (S01/S03/S18) it is kept and the frame or the
+    in-plane angle is adjusted instead."""
+    tiltf = 1 + 0.6 * math.sin(math.radians(min(80, g.tilt)))
+    rescale = p.get("rescale", 1.0)
+    order = ("low_720p", "phone_1080p_wide") + (("phone_4k_wide",) if ALLOW_4K else ())
+    own_short = min(frame_of(p["device"]))
+    candidates = [p["device"]] + [d for d in order if d != p["device"] and min(frame_of(d)) > own_short]
+
+    def max_ppm(dev: str, ext: float) -> float:  # output-frame px/module that fits dev
+        return 0.9 * min(frame_of(dev)) * rescale / (g.cpm * ext * tiltf)
+
+    def switch(dev: str) -> None:
+        if dev != p["device"]:
+            keep = {k: p[k] for k in ("sharpen", "denoise") if k in p}
+            p.update(device_params(dev))
+            p.update(keep)
+            g.notes.append(f"device_upgraded_to_fit:{dev}")
+
+    if g.keep != "ppm":
         ext = rotation_extent(p["roll"])
-        if max_extent >= ext:
-            pass
-        elif max_extent >= 1.0 and g.keep == "ppm":
+        for dev in candidates:
+            m = max_ppm(dev, ext)
+            if m >= min(g.ppm, vmin(p)):
+                switch(dev)
+                g.ppm = min(g.ppm, m)
+                return True
+        return False
+    for dev in candidates:
+        max_extent = 0.9 * min(frame_of(dev)) * rescale / (g.ppm * g.cpm * tiltf)
+        ext = rotation_extent(p["roll"])
+        if max_extent < ext:
+            if max_extent < 1.0:
+                continue
             # Reduce the in-plane angle within its quadrant until it fits.
             quad = math.floor(p["roll"] / 90.0) * 90.0
             a_max = math.degrees(math.asin(min(1.0, max_extent / math.sqrt(2)))) - 45.0
             frac = p["roll"] - quad
             p["roll"] = round(quad + (min(frac, a_max) if frac <= 45 else max(frac, 90 - a_max)), 4)
-        else:
-            continue
-        if dev != p["device"]:
-            keep = {k: p[k] for k in ("sharpen", "denoise") if k in p}
-            p.update(device_params(dev))
-            p.update(keep)
+        switch(dev)
         return True
     return False
 
 
 def finalize_geometry(p: dict, g: Geo, r: random.Random) -> list[str]:
-    notes = []
+    notes = g.notes
     if not ensure_fit(p, g):
-        # Protected quantity cannot fit any device: shrink ppm to the 4K limit and record it.
-        w, h = frame_of("phone_4k_wide")
-        p.update(device_params("phone_4k_wide"))
+        # Cannot fit at the wanted (or declared-minimum) px/module on any allowed frame: use the
+        # largest allowed frame at the px/module that fits, and record the deviation.
+        big = "phone_4k_wide" if ALLOW_4K else "phone_1080p_wide"
+        w, h = frame_of(big)
+        if p["device"] != big:
+            p.update(device_params(big))
         g.ppm = 0.9 * min(w, h) / (g.cpm * rotation_extent(p["roll"]) * (1 + 0.6 * math.sin(math.radians(min(80, g.tilt))))) * p.get("rescale", 1.0)
-        if g.keep == "ppm":  # only a design deviation when ppm is the stratum's own factor
-            notes.append("ppm_capped_to_fit")
+        notes.append("ppm_capped_to_fit" if g.keep == "ppm" else "below_declared_min_to_fit")
     pre_scale_ppm = g.ppm / p.get("rescale", 1.0)
     pre_scale_ppm = place(p, g.module_mm, pre_scale_ppm, g.cpm, keep_module=g.keep_module)
     g.ppm = pre_scale_ppm * p.get("rescale", 1.0)
@@ -427,15 +470,17 @@ def make_case(cohort: str, master: str, stratum: str, profile: str, b: int, mode
     x = severity if severity is not None else sample_in_bin(stratum, b, rs)
     fill = x if stratum == "S02" else None
     pattern = PATTERNS[k % len(PATTERNS)] if stratum == "S02" else None
-    sym, sgeo = symbol_params(profile, k + 7 * b, r, fill=fill, pattern=pattern)
+    sym, sgeo = symbol_params(profile, k + 7 * b, r, fill=fill, pattern=pattern)  # profile = variant (P0 / P0.1)
     if severity is None and stratum in ("S03", "S18"):
         # Keep the sampled severity inside the physically feasible part of its bin
         # (the largest symbols cannot be imaged at high px/module in any phone frame).
         lo, hi = sorted(STRATA[stratum]["bins"][b])
-        ppm_fit = 0.9 * 2160 / (sgeo["canvas_per_module"] * 1.06)
+        ppm_fit = 0.9 * 1080 / (sgeo["canvas_per_module"] * 1.06)  # prefer what fits a 1080p frame
+        if ppm_fit <= lo and ALLOW_4K:
+            ppm_fit = 0.9 * 2160 / (sgeo["canvas_per_module"] * 1.06)
         pitch = 1.0
         if stratum == "S18":
-            key = profile if profile != "P0" else ("P0_print" if sym.get("p0_layout") == "print" else "P0_standard")
+            key = "P0_print" if sym.get("p0_layout") == "print" else ("P0_standard" if sym.get("profile") == "P0" else profile)
             pitch = GEOM["ray_pitch_modules"][key]
         cap = ppm_fit * pitch
         if x > cap and lo < cap:

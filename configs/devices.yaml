@@ -7,10 +7,20 @@
 #
 # focal_px: focal length in output pixels. f_mm / f_number / pixel pitch feed
 # thin-lens defocus when a case is closer than min_focus_mm.
-version: devices-v1
+version: devices-v2
+# v2 (owner decision): hardening targets ordinary capture, so 1080p-class frames dominate.
+# "4K" here is the CAMERA frame, never the print. A case is moved to a 4K frame only when its
+# symbol cannot physically fit a 1080p frame at the case's px/module (dense P0 versions); the
+# plan records this as device_upgraded_to_fit. 720p covers preview-resolution scanning paths.
+# Owner decision 2026-11-08: harden for ordinary capture, no 4K frames. Dense P0 versions
+# cannot be imaged at the declared 6 px/module in a 1080p frame (v31 is 248 module-widths
+# across: 6 x 248 = 1,488 px > 1,080), so they are imaged at the largest px/module that fits
+# (flagged below_declared_min_to_fit). That measures how far below 6 px/module the reader
+# can go. Set true to let only those cases use the iOS reader's own 4K preset instead.
+allow_4k_fallback: false
 devices:
   phone_4k_wide:
-    weight: 0.45
+    weight: 0.0                  # not sampled (kept for allow_4k_fallback and candidate builds)
     frame: [2160, 3840]          # portrait, as the reader receives the luma plane
     focal_px: 2360
     k1: -0.02
@@ -26,7 +36,7 @@ devices:
     lens_sigma_px: [0.6, 0.9]    # residual blur at axis / corner
     isp: {sharpen: 0.35, denoise: 0.15}
   phone_1080p_wide:
-    weight: 0.30
+    weight: 0.50
     frame: [1080, 1920]
     focal_px: 1180
     k1: -0.02
@@ -42,7 +52,7 @@ devices:
     lens_sigma_px: [0.45, 0.7]
     isp: {sharpen: 0.3, denoise: 0.15}
   phone_4k_ultrawide:
-    weight: 0.10
+    weight: 0.0
     frame: [2160, 3840]
     focal_px: 1100
     k1: -0.12
@@ -58,7 +68,7 @@ devices:
     lens_sigma_px: [0.8, 1.5]
     isp: {sharpen: 0.5, denoise: 0.25}
   phone_1080p_tele:
-    weight: 0.08
+    weight: 0.10
     frame: [1080, 1920]
     focal_px: 3000
     k1: 0.0
@@ -74,7 +84,7 @@ devices:
     lens_sigma_px: [0.6, 0.8]
     isp: {sharpen: 0.3, denoise: 0.2}
   budget_1080p:
-    weight: 0.07
+    weight: 0.20
     frame: [1080, 1920]
     focal_px: 1250
     k1: -0.05
@@ -89,3 +99,35 @@ devices:
     adc_bits: 10
     lens_sigma_px: [0.9, 1.4]
     isp: {sharpen: 0.7, denoise: 0.45}
+  low_720p:
+    weight: 0.15
+    frame: [720, 1280]
+    focal_px: 790
+    k1: -0.03
+    k2: 0.0
+    f_mm: 4.0
+    f_number: 2.0
+    min_focus_mm: 80
+    full_well_e: 10000
+    read_noise_e: 3.5
+    max_signal_e: 8000
+    prnu: 0.006
+    adc_bits: 10
+    lens_sigma_px: [0.4, 0.6]
+    isp: {sharpen: 0.4, denoise: 0.3}
+  phone_1080p_ultrawide:
+    weight: 0.0                  # used by S19 (strong barrel distortion / corner placement)
+    frame: [1080, 1920]
+    focal_px: 550
+    k1: -0.12
+    k2: 0.02
+    f_mm: 2.2
+    f_number: 2.2
+    min_focus_mm: 25
+    full_well_e: 6000
+    read_noise_e: 3.5
+    max_signal_e: 4000
+    prnu: 0.008
+    adc_bits: 10
+    lens_sigma_px: [0.6, 1.1]
+    isp: {sharpen: 0.5, denoise: 0.25}

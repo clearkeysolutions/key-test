@@ -32,7 +32,7 @@ RESULT_COLS = [
     ("crosscheck", "REAL"), ("texture_px", "REAL"), ("electrons_white", "REAL"), ("digital_gain", "REAL"), ("versions", "TEXT"),
     ("supervisor_detail", "TEXT"),
 ]
-PLAN_COLS = [("substrate", "TEXT"), ("ideal", "INTEGER"), ("pool", "TEXT"), ("rasterizer", "TEXT"), ("device", "TEXT"),
+PLAN_COLS = [("variant", "TEXT"), ("svg_sha256", "TEXT"), ("substrate", "TEXT"), ("ideal", "INTEGER"), ("pool", "TEXT"), ("rasterizer", "TEXT"), ("device", "TEXT"),
              ("symbol_mm", "REAL"), ("distance_mm", "REAL"), ("target_ppm", "REAL"), ("color_mode", "TEXT"), ("p0_layout", "TEXT"),
              ("p0_level", "TEXT"), ("p3_tier", "INTEGER"), ("payload_pattern", "TEXT"), ("occl_kind", "TEXT"), ("second_code", "INTEGER")]
 PLAN_DEFAULTS = {"substrate": "ideal", "ideal": 0, "pool": "", "rasterizer": "harness", "color_mode": "mono", "occl_kind": "none", "second_code": 0}
@@ -45,7 +45,7 @@ def connect(path: Path) -> sqlite3.Connection:
     cols = ", ".join(f"{n} {t}" for n, t in RESULT_COLS + PLAN_COLS)
     con.execute(f"CREATE TABLE IF NOT EXISTS cases (plan_set TEXT, {cols}, PRIMARY KEY (plan_set, case_id))")
     con.execute("CREATE TABLE IF NOT EXISTS ingested (plan_set TEXT, shard INTEGER, results_sha256 TEXT, PRIMARY KEY (plan_set, shard))")
-    for idx in ("cohort, stratum, profile, sev_bin", "failure_reason", "wrong_payload", "phys_class"):
+    for idx in ("cohort, stratum, variant, sev_bin", "failure_reason", "wrong_payload", "phys_class"):
         name = "i_" + "".join(ch if ch.isalnum() else "_" for ch in idx)
         con.execute(f"CREATE INDEX IF NOT EXISTS {name} ON cases ({idx})")
     return con
@@ -74,7 +74,9 @@ def ingest(con: sqlite3.Connection, data_dir: Path, plan_set: str) -> int:
         for r in read_jsonl(data_dir / "results" / plan_set / f"{rec['stem']}.jsonl.gz"):
             if r.get("status") != "COMPLETED":
                 continue
-            p = plan.get(r["case_id"], {})
+            p = dict(plan.get(r["case_id"], {}))
+            p["variant"] = "P0.1" if p.get("profile") == "P0" and p.get("p0_layout") == "print" else p.get("profile")
+            p["svg_sha256"] = r.get("svg_sha256")
             vals = [_norm(r.get(n)) for n, _ in RESULT_COLS] + [_norm(p.get(n, PLAN_DEFAULTS.get(n))) for n, _ in PLAN_COLS]
             rows.append([plan_set] + vals)
         before = con.total_changes

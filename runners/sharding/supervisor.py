@@ -319,12 +319,25 @@ class Supervisor:
         append_jsonl(self.manifest_path, record)
         for leftover in self.prog_dir.glob(f"{stem}.remaining.jsonl"):
             leftover.unlink()
+        self.offsite(stem)
         with self.totals.lock:
             self.totals.done += len(ids)
             self.totals.success += stats["success"]
             self.totals.wrong += stats["wrong_payload"]
         if stats["wrong_payload"]:
             self.log(f"  !!! {stats['wrong_payload']} WRONG PAYLOAD(S) in {stem} -- certification blocked; continuing the campaign")
+
+    def offsite(self, stem: str) -> None:
+        """Upload a sealed shard to R2 (if configured). Failures never affect results: `./ckt sync` retries."""
+        if not self.cfg.get("storage", {}).get("r2", {}).get("upload_on_seal", True):
+            return
+        try:
+            from storage.r2 import R2
+            r2 = R2(self.data)
+            if r2.enabled:
+                r2.upload_shard(self.set, stem)
+        except Exception as e:
+            self.infra(kind="r2_upload_deferred", stem=stem, error=repr(e)[:300])
 
     # ------------------------------------------------------------------ run
     def run(self) -> dict:

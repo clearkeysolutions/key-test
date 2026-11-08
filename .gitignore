@@ -7,3 +7,6 @@
 /.venv/
 __pycache__/
 *.pyc
+
+# Server credentials (never commit)
+scripts/server/r2.env

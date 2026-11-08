@@ -14,13 +14,13 @@ from pathlib import Path
 
 
 def catalogue(con: sqlite3.Connection, cohort: str = "structured", per_cell: int = 5) -> dict:
-    cells = con.execute("""SELECT stratum, profile, failure_reason, COUNT(*) FROM cases
+    cells = con.execute("""SELECT stratum, variant, failure_reason, COUNT(*) FROM cases
                            WHERE cohort=? AND success=0 AND neg_kind='none' AND phys_class!='UNRECOVERABLE'
-                           GROUP BY stratum, profile, failure_reason ORDER BY COUNT(*) DESC""", (cohort,)).fetchall()
+                           GROUP BY stratum, variant, failure_reason ORDER BY COUNT(*) DESC""", (cohort,)).fetchall()
     out = {}
     for s, p, reason, n in cells:
         rows = con.execute("""SELECT case_id, sev_bin, severity, ppm_min, gt_quad_decodes, localization_error_modules, image_uri, trace_uri, transformations
-                              FROM cases WHERE cohort=? AND stratum=? AND profile=? AND failure_reason=? AND success=0 AND neg_kind='none'
+                              FROM cases WHERE cohort=? AND stratum=? AND variant=? AND failure_reason=? AND success=0 AND neg_kind='none'
                               AND phys_class!='UNRECOVERABLE' ORDER BY sev_bin ASC, ppm_min DESC LIMIT ?""", (cohort, s, p, reason, per_cell)).fetchall()
         out[f"{s}/{p}/{reason}"] = {"count": n, "examples": [
             {"case_id": r[0], "sev_bin": r[1], "severity": r[2], "ppm_min": r[3], "gt_quad_decodes": r[4], "loc_err_modules": r[5],

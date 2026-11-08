@@ -4,6 +4,8 @@
 //              [--images DIR] [--fail-image-cap N] [--success-sample-ppm N]
 //              [--crosscheck-strata S01] [--trace-uri-prefix PFX]
 //   ckt_worker --repro LINE.json --out DIR       (regenerate one case's frames as PNG)
+//   ckt_worker --ml-export PLAN OUT.bin             (ML training records; see runners/native/ml.h)
+//   ckt_worker --ml-eval PLAN MODEL.bin OUT.jsonl     (classical vs ML vs hybrid on identical frames)
 //   ckt_worker --selftest | --print-schema | --print-config | --capacity-table
 //
 // Output files are append-only. Each result line is one completed case or
@@ -11,12 +13,14 @@
 // The progress log brackets every case and every reader call so a crash or
 // hang can be attributed to the reader (completed failure) or the harness.
 #include "ckey/ckey.h"
+#include "runners/native/ml.h"
 #include "runners/native/scanner_adapter.h"
 #include "runners/native/symbol_factory.h"
 #include "simulation/common/sha256.h"
 #include "simulation/pipeline.h"
 
 #include <cerrno>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
@@ -69,6 +73,12 @@ private:
 };
 
 static std::string hexs(const std::vector<uint8_t> &v) { return Sha256::of(v.data(), v.size()); }
+// Hash of exactly what was rendered (splices hash both halves); the SVG itself is regenerable from the case line.
+static std::string svg_hash(const SymbolArt &a) {
+    Sha256 h; h.update(a.svg.data(), a.svg.size());
+    if (!a.svg_b.empty()) { const std::string sep = "\n#splice " + std::to_string(a.splice) + "\n"; h.update(sep.data(), sep.size()); h.update(a.svg_b.data(), a.svg_b.size()); }
+    return h.hex();
+}
 
 static std::string quad_json(const double *q) {
     std::string s = "[";
@@ -268,7 +278,7 @@ public:
         o << "{\"status\":\"COMPLETED\",\"case_id\":" << jstr(c.case_id) << ",\"cohort\":" << jstr(c.cohort) << ",\"stratum\":" << jstr(c.stratum)
           << ",\"profile\":" << jstr(c.profile) << ",\"mode\":" << jstr(c.mode) << ",\"sev_bin\":" << c.sev_bin << ",\"factor\":" << jstr(c.factor)
           << ",\"severity\":" << jnum(c.severity) << ",\"payload_family\":" << jstr(c.payload_family)
-          << ",\"payload_hash\":" << jstr(hexs(art.payload)) << ",\"payload_len\":" << art.payload.size() << ",\"format_version\":" << jstr(art.format)
+          << ",\"payload_hash\":" << jstr(hexs(art.payload)) << ",\"svg_sha256\":" << jstr(svg_hash(art)) << ",\"payload_len\":" << art.payload.size() << ",\"format_version\":" << jstr(art.format)
           << ",\"seed\":" << jstr(c.seed) << ",\"renderer_sha\":" << jstr(CKT_CKEY_SHA) << ",\"scanner_sha\":" << jstr(CKT_CKEY_SHA)
           << ",\"model_sha\":\"none\",\"harness_sha\":" << jstr(CKT_HARNESS_SHA) << ",\"camera_model\":" << jstr(c.device)
           << ",\"transformations\":" << jstr(summary(c)) << ",\"image_hash\":" << jstr(img_hash.hex())
@@ -348,6 +358,118 @@ std::string config_json() {
 
 int selftest();
 
+// ---- ML localization option -----------------------------------------------------
+static bool valid_p0(const CaseSpec &c) { return c.profile == "P0" && c.neg_kind == "none" && c.second_code == 0; }
+
+static int stratum_num(const std::string &s) { return s.size() == 3 && s[0] == 'S' ? std::atoi(s.c_str() + 1) : 0; }
+
+// One record per production border candidate of every valid P0 case.
+int ml_export(const std::string &plan_path, const std::string &out_path) {
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "ab");
+    if (!plan || !out) { std::fprintf(stderr, "ml-export: cannot open files\n"); return 3; }
+    Simulator sim; Scanner scanner; std::string line; size_t cases = 0, records = 0, matched = 0;
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (!valid_p0(c)) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        if (!f.gt_valid) continue;
+        const ScanResult sr = scanner.decode(f.gray.data(), f.w, f.h, f.w);
+        std::vector<uint8_t> pl;
+        const bool gtq = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload;
+        const std::string ch = Sha256::of(c.case_id.data(), c.case_id.size());
+        ++cases;
+        for (size_t i = 0; i < sr.candidates.size(); ++i) {
+            const auto &cand = sr.candidates[i];
+            MlRecord r;
+            for (int k = 0; k < 16; ++k) r.case_hash[k] = static_cast<uint8_t>(std::stoi(ch.substr(2 * k, 2), nullptr, 16));
+            const double side = std::max(8.0, std::hypot(f.gt[2] - f.gt[0], f.gt[3] - f.gt[1]));
+            r.cand_idx = static_cast<uint8_t>(i); r.matched = quad_distance(cand.border, f.gt) < 0.08 * side + 3;
+            r.reader_ok = sr.accepted && sr.payload == art.payload; r.gtq_ok = gtq; r.layout = c.p0_layout == "print";
+            r.p0_version = static_cast<uint8_t>(art.p0_version); r.stratum = static_cast<uint8_t>(stratum_num(c.stratum));
+            r.ppm = static_cast<float>(f.phys.ppm_mean);
+            int perm[4]; quad_perm(cand.border, f.gt, perm);
+            const Attempt *ref = nullptr;
+            for (const auto &a : cand.attempts) if (a.field == CKEY_FIELD_SCALABLE && a.score >= 0) ref = &a;
+            int rperm[4]; if (ref) quad_perm(cand.border, ref->quad, rperm);
+            for (int k = 0; k < 4; ++k) {
+                const LocalFrame lf = corner_frame(cand.border, k);
+                r.side_px = static_cast<float>(lf.side);
+                sample_patch(f.gray.data(), f.w, f.h, lf, r.patch[k]);
+                const float nan = std::numeric_limits<float>::quiet_NaN();
+                if (!r.matched || !to_local(lf, f.gt[2 * perm[k]], f.gt[2 * perm[k] + 1], r.label[k])) r.label[k][0] = r.label[k][1] = nan;
+                if (!ref || !to_local(lf, ref->quad[2 * rperm[k]], ref->quad[2 * rperm[k] + 1], r.refined[k])) r.refined[k][0] = r.refined[k][1] = nan;
+            }
+            matched += r.matched;
+            std::fwrite(&r, sizeof r, 1, out); ++records;
+        }
+    }
+    std::fclose(out);
+    std::fprintf(stderr, "ml-export: %zu cases, %zu records (%zu on the symbol)\n", cases, records, matched);
+    return 0;
+}
+
+// Classical vs ML vs hybrid on identical frames. ML: predicted corners -> production decoder (RS + CRC gate).
+int ml_eval(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
+    Mlp mlp; std::string err;
+    if (!mlp.load(model_path, err)) { std::fprintf(stderr, "ml-eval: %s\n", err.c_str()); return 3; }
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-eval: cannot open files\n"); return 3; }
+    Simulator sim; Scanner scanner; std::string line;
+    float x[kPatch * kPatch];
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (!valid_p0(c)) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        const ScanResult sr = scanner.decode(f.gray.data(), f.w, f.h, f.w);
+        const bool ok_c = sr.accepted && sr.payload == art.payload, wrong_c = sr.accepted && !ok_c;
+        bool ok_m = false, wrong_m = false, ok_mr = false, wrong_mr = false; double ml_ms = 0, ml_err = -1, ref_err = -1;
+        const double side = std::max(8.0, std::hypot(f.gt[2] - f.gt[0], f.gt[3] - f.gt[1]));
+        for (const auto &cand : sr.candidates) {
+            const auto t0 = std::chrono::steady_clock::now();
+            double q[8];
+            for (int k = 0; k < 4; ++k) {
+                const LocalFrame lf = corner_frame(cand.border, k);
+                uint8_t patch[kPatch][kPatch]; sample_patch(f.gray.data(), f.w, f.h, lf, patch);
+                normalise(patch, x); float o[2]; mlp.predict(x, o);
+                from_local(lf, o[0], o[1], q[2 * k], q[2 * k + 1]);
+            }
+            ml_ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            const bool on_symbol = f.gt_valid && quad_distance(cand.border, f.gt) < 0.08 * side + 3;
+            if (on_symbol) {
+                ml_err = quad_distance(q, f.gt);
+                for (const auto &a : cand.attempts) if (a.field == CKEY_FIELD_SCALABLE && a.score >= 0) ref_err = quad_distance(a.quad, f.gt);
+            }
+            std::vector<uint8_t> pl;
+            if (!ok_m && !wrong_m && decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, q, pl)) {
+                if (pl == art.payload) ok_m = true; else wrong_m = true;
+            }
+            // ML proposal as the starting quad of the production refiner, then the production decoder.
+            if (!ok_mr && !wrong_mr) {
+                double rq[8];
+                if (ckey_refine_quad_gray8(f.gray.data(), f.w, f.h, f.w, q, CKEY_FIELD_SCALABLE, rq) >= 0 && decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, rq, pl)) {
+                    if (pl == art.payload) ok_mr = true; else wrong_mr = true;
+                }
+            }
+            if ((ok_m || wrong_m) && (ok_mr || wrong_mr)) break;
+        }
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"sev_bin\":%d,\"layout\":%s,\"p0_version\":%u,\"phys_class\":%s,\"ppm\":%s,"
+                          "\"ok_classical\":%s,\"ok_ml\":%s,\"ok_ml_refine\":%s,\"ok_hybrid\":%s,\"wrong_classical\":%s,\"wrong_ml\":%s,\"wrong_ml_refine\":%s,\"ml_ms\":%s,\"ml_loc_err\":%s,\"refine_loc_err\":%s,\"model_params\":%zu}\n",
+                     jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), c.sev_bin, jstr(c.p0_layout).c_str(), art.p0_version, jstr(f.phys.cls).c_str(), jnum(f.phys.ppm_mean).c_str(),
+                     ok_c ? "true" : "false", ok_m ? "true" : "false", ok_mr ? "true" : "false", (ok_c || (!wrong_c && (ok_m || ok_mr))) ? "true" : "false",
+                     wrong_c ? "true" : "false", wrong_m ? "true" : "false", wrong_mr ? "true" : "false",
+                     jnum(ml_ms).c_str(), ml_err >= 0 ? jnum(ml_err).c_str() : "null", ref_err >= 0 ? jnum(ref_err).c_str() : "null", mlp.parameters());
+        std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+
 }  // namespace ckt
 
 int main(int argc, char **argv) {
@@ -360,6 +482,8 @@ int main(int argc, char **argv) {
         if (a == "--print-schema") { std::puts(case_schema_json().c_str()); return 0; }
         if (a == "--print-config") { std::puts(config_json().c_str()); return 0; }
         if (a == "--capacity-table") { std::puts(capacity_table().c_str()); return 0; }
+        if (a == "--ml-export" && i + 2 < argc) return ml_export(argv[i + 1], argv[i + 2]);
+        if (a == "--ml-eval" && i + 3 < argc) return ml_eval(argv[i + 1], argv[i + 2], argv[i + 3]);
         if (a == "--plan") opt.plan = next();
         else if (a == "--results") opt.results = next();
         else if (a == "--traces") opt.traces = next();
@@ -383,6 +507,12 @@ int main(int argc, char **argv) {
             mkdirs(out_dir);
             for (size_t i = 0; i < keep.size(); ++i) write_png(out_dir + "/frame" + std::to_string(i) + ".png", keep[i].frame.gray, keep[i].frame.w, keep[i].frame.h, 0, 0, keep[i].frame.w, keep[i].frame.h);
             std::ofstream(out_dir + "/trace.json") << trace << "\n";
+            try {
+                const CaseSpec c = parse_case(line);
+                const SymbolArt art = build_symbol(c, 0);
+                if (!art.svg.empty()) std::ofstream(out_dir + "/symbol.svg") << art.svg;
+                if (!art.svg_b.empty()) std::ofstream(out_dir + "/symbol_splice_b.svg") << art.svg_b;
+            } catch (...) {}
         }
         std::puts(res.c_str());
         return 0;

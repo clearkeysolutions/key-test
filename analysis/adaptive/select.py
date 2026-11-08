@@ -57,11 +57,11 @@ def est_t_bytes(profile: str, ecc: float, payload_len: int) -> float:
 def weakness_scores(con: sqlite3.Connection) -> list[dict]:
     w = ACFG["failure_targeted"]["weights"]
     budget = ACFG["failure_targeted"]["latency_budget_ms"]
-    rows = con.execute("""SELECT stratum, profile, sev_bin, success, wrong_payload, decode_ms_first, localization_error_modules,
+    rows = con.execute("""SELECT stratum, variant, sev_bin, success, wrong_payload, decode_ms_first, localization_error_modules,
                                  FEC_corrections, ecc_fraction, payload_len, failure_reason, phys_class
                           FROM cases WHERE cohort='structured' AND neg_kind='none' AND expected_outcome IN ('DECODE','DECODE_ANY_OF')""").fetchall()
     wrong_any = defaultdict(int)
-    for s, p, b, w_ in con.execute("SELECT stratum, profile, sev_bin, SUM(wrong_payload) FROM cases WHERE cohort='structured' GROUP BY stratum, profile, sev_bin"):
+    for s, p, b, w_ in con.execute("SELECT stratum, variant, sev_bin, SUM(wrong_payload) FROM cases WHERE cohort='structured' GROUP BY stratum, variant, sev_bin"):
         wrong_any[(s, p, b)] = int(w_ or 0)
     cells = defaultdict(lambda: {"n": 0, "ok": 0, "lat": [], "loc": [], "margin": [], "mech": defaultdict(int)})
     for s, p, b, ok, wr, ms, loc, fec, ecc, plen, reason, cls in rows:
@@ -75,7 +75,7 @@ def weakness_scores(con: sqlite3.Connection) -> list[dict]:
         if loc is not None:
             c["loc"].append(loc)
         if ok:
-            c["margin"].append(min(1.0, (fec or 0) / est_t_bytes(p, ecc or 0.1, plen or 1)))
+            c["margin"].append(min(1.0, (fec or 0) / est_t_bytes("P0", ecc or 0.1, plen or 1)))
         else:
             c["mech"][reason] += 1
     out = []
@@ -167,7 +167,7 @@ def cross_condition(scores: list[dict]) -> list[dict]:
     for pi, ((sa, ba), (sb, bb)) in enumerate(pairs):
         n = per + (1 if pi < pool - per * len(pairs) else 0)
         for k in range(n):
-            prof = PROFILES[k % 4]
+            prof = PROFILES[k % len(PROFILES)]
             r = rng_for(MASTER, "cc-sev", sa, ba, sb, bb, k)
             lo, hi = sorted(STRATA[sb]["bins"][bb])
             xb = r.uniform(lo, hi)
@@ -210,7 +210,7 @@ def init_tracks(con: sqlite3.Connection, scores: list[dict], n_tracks: int) -> l
     tracks = []
     for cell, n in alloc:
         s, p, b = cell["stratum"], cell["profile"], cell["sev_bin"]
-        rows = con.execute("""SELECT case_id, success FROM cases WHERE cohort='structured' AND stratum=? AND profile=? AND sev_bin=?
+        rows = con.execute("""SELECT case_id, success FROM cases WHERE cohort='structured' AND stratum=? AND variant=? AND sev_bin=?
                               AND neg_kind='none' AND mode IN ('sweep','joint') AND phys_class!='UNRECOVERABLE' ORDER BY success, case_id""", (s, p, b)).fetchall()
         for i in range(min(n, len(rows))):
             cid = rows[i][0]
@@ -293,7 +293,7 @@ class Boundary:
             if not ranked:  # no tracks at all: spend the pool on the hardest bins of the continuous strata
                 strata = sorted(HARDER)
                 while len(cases) < left:
-                    s, prof = strata[j % len(strata)], PROFILES[(j // len(strata)) % 4]
+                    s, prof = strata[j % len(strata)], PROFILES[(j // len(strata)) % len(PROFILES)]
                     c = make_case("adaptive", MASTER, s, prof, 4, "joint", j, case_id=f"adaptive-bs-fill-x{j:06d}")
                     c["pool"] = "boundary_search"
                     cases.append(c)

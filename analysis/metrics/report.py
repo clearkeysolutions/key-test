@@ -40,12 +40,12 @@ def cohort_report(con: sqlite3.Connection, cohort: str, plan_sets: list[str] | N
     rep["completed_cases"] = total
     rep["quota"] = {
         "by_stratum": dict(q(con, f"SELECT stratum, COUNT(*) FROM cases {W} GROUP BY stratum", args)),
-        "by_stratum_profile": {f"{s}/{p}": n for s, p, n in q(con, f"SELECT stratum, profile, COUNT(*) FROM cases {W} GROUP BY stratum, profile", args)},
+        "by_stratum_profile": {f"{s}/{p}": n for s, p, n in q(con, f"SELECT stratum, variant, COUNT(*) FROM cases {W} GROUP BY stratum, variant", args)},
         "by_mode": dict(q(con, f"SELECT mode, COUNT(*) FROM cases {W} GROUP BY mode", args)),
         "by_pool": dict(q(con, f"SELECT COALESCE(pool,''), COUNT(*) FROM cases {W} GROUP BY pool", args)),
     }
     # ---- safety: accepted wrong payloads
-    wrong = q(con, f"SELECT profile, COUNT(*), SUM(wrong_payload) FROM cases {W} GROUP BY profile", args)
+    wrong = q(con, f"SELECT variant, COUNT(*), SUM(wrong_payload) FROM cases {W} GROUP BY variant", args)
     rep["safety"] = {
         "wrong_payloads_total": sum(int(w or 0) for _, _, w in wrong),
         "by_profile": {p: {"cases": n, "wrong": int(w or 0), "upper95_rate": one_sided_upper(int(w or 0), n)} for p, n, w in wrong},
@@ -66,12 +66,15 @@ def cohort_report(con: sqlite3.Connection, cohort: str, plan_sets: list[str] | N
     rep["valid"] = {
         "overall": table("'all'"),
         "overall_recoverable": table("'all'", "AND phys_class='RECOVERABLE'"),
-        "by_profile": table("profile"),
+        "by_profile": table("variant"),
+        "by_density": table("CASE WHEN p0_version<=8 THEN 'v1-8' WHEN p0_version<=16 THEN 'v9-16' WHEN p0_version<=24 THEN 'v17-24' ELSE 'v25-31' END"),
+        "by_variant_density": table("variant, CASE WHEN p0_version<=8 THEN 'v1-8' WHEN p0_version<=16 THEN 'v9-16' WHEN p0_version<=24 THEN 'v17-24' ELSE 'v25-31' END"),
+        "by_variant_level": table("variant, p0_level"),
         "by_stratum": table("stratum"),
         "by_stratum_recoverable": table("stratum", "AND phys_class='RECOVERABLE'"),
-        "by_stratum_profile": table("stratum, profile"),
+        "by_stratum_profile": table("stratum, variant"),
         "by_stratum_bin": table("stratum, sev_bin"),
-        "by_stratum_profile_bin": table("stratum, profile, sev_bin"),
+        "by_stratum_profile_bin": table("stratum, variant, sev_bin"),
         "by_phys_class": table("phys_class"),
         "by_device": table("camera_model"),
         "by_substrate": table("substrate"),
@@ -98,15 +101,15 @@ def cohort_report(con: sqlite3.Connection, cohort: str, plan_sets: list[str] | N
                           "so the failure is in border finding / quad refinement; otherwise sampling or decoding is limiting.")
     # ---- negatives
     neg = {}
-    for kind, prof, n, rej, wrongs in q(con, f"SELECT neg_kind, profile, COUNT(*), SUM(observed_outcome='NO_READ'), SUM(wrong_payload) FROM cases {W} AND neg_kind!='none' GROUP BY neg_kind, profile", args):
+    for kind, prof, n, rej, wrongs in q(con, f"SELECT neg_kind, variant, COUNT(*), SUM(observed_outcome='NO_READ'), SUM(wrong_payload) FROM cases {W} AND neg_kind!='none' GROUP BY neg_kind, variant", args):
         neg[f"{kind}/{prof}"] = {"cases": n, "rejected": int(rej or 0), "wrong": int(wrongs or 0), "reject_rate": (rej or 0) / n}
     rep["negatives"] = neg
     # ---- physical classes
     rep["phys_classes"] = {c: {"cases": n, "success": int(k or 0)} for c, n, k in q(con, f"SELECT phys_class, COUNT(*), SUM(success) FROM cases {V} GROUP BY phys_class", args)}
     # ---- latency, memory (host-indicative)
     lat = {}
-    for prof, fw in q(con, f"SELECT DISTINCT profile, frame_w FROM cases {W} AND frame_count=1", args):
-        vals = [r[0] for r in q(con, f"SELECT decode_ms_first FROM cases {W} AND profile=? AND frame_w=? AND decode_ms_first IS NOT NULL", args + [prof, fw])]
+    for prof, fw in q(con, f"SELECT DISTINCT variant, frame_w FROM cases {W} AND frame_count=1", args):
+        vals = [r[0] for r in q(con, f"SELECT decode_ms_first FROM cases {W} AND variant=? AND frame_w=? AND decode_ms_first IS NOT NULL", args + [prof, fw])]
         lat[f"{prof}/{fw}w"] = {"n": len(vals), "p50": quantile(vals, .5), "p95": quantile(vals, .95), "p99": quantile(vals, .99), "max": max(vals) if vals else None}
     tts = [r[0] for r in q(con, f"SELECT tts_ms FROM cases {V} AND frames_planned>1 AND success=1", args)]
     rep["latency_host_ms"] = {"single_frame_decode": lat, "sequence_time_to_success": {"n": len(tts), "p50": quantile(tts, .5), "p95": quantile(tts, .95)},
@@ -149,7 +152,7 @@ def markdown(rep: dict, title: str) -> str:
     s = rep["safety"]
     L += ["## Safety: accepted wrong payloads", "", f"**Total wrong payloads: {s['wrong_payloads_total']}**"
           + (f" · one-sided 95% upper bound on the rate: {s['upper95_rate_all']:.2e} (assumes independence)" if s.get("upper95_rate_all") is not None else ""), "",
-          "| Profile | Cases | Wrong | 95% upper rate |", "|---|---:|---:|---:|"]
+          "| Variant | Cases | Wrong | 95% upper rate |", "|---|---:|---:|---:|"]
     for p, v in sorted(s["by_profile"].items()):
         L.append(f"| {p} | {v['cases']:,} | {v['wrong']} | {v['upper95_rate']:.2e} |")
     L += ["", "## Valid-symbol decode success", "", f"* All valid cases: {fmt_rate(rep['valid']['overall'].get('all'))}",
@@ -160,8 +163,11 @@ def markdown(rep: dict, title: str) -> str:
     L += ["", "| Stratum | Name | All valid | Recoverable only |", "|---|---|---|---|"]
     for st in sorted(STRATA):
         L.append(f"| {st} | {STRATA[st]['name']} | {fmt_rate(rep['valid']['by_stratum'].get(st))} | {fmt_rate(rep['valid']['by_stratum_recoverable'].get(st))} |")
-    L += ["", "### By profile", "", "| Profile | Success |", "|---|---|"]
+    L += ["", "### By variant (P0 = Format 0.27 standard, P0.1 = Format 0.28 print)", "", "| Variant | Success |", "|---|---|"]
     for p, r in sorted(rep["valid"]["by_profile"].items()):
+        L.append(f"| {p} | {fmt_rate(r)} |")
+    L += ["", "### By density (P0 version band) and variant", "", "| Variant / band | Success |", "|---|---|"]
+    for p, r in sorted(rep["valid"]["by_variant_density"].items()):
         L.append(f"| {p} | {fmt_rate(r)} |")
     L += ["", "### By stratum and severity bin (0 = easiest)", "", "| Stratum | b0 | b1 | b2 | b3 | b4 |", "|---|---|---|---|---|---|"]
     for st in sorted(STRATA):

@@ -19,7 +19,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SEED_VERSION = "ckt-seed-v1"
-PROFILES = ("P1", "P2", "P3", "P0")
+# Variants under test (owner scope 2026-11-08): Profile 0 standard (Format 0.27) and P0.1 print (0.28).
+PROFILES = ("P0", "P0.1")
+
+
+def variant_of(case: dict) -> str:
+    return "P0.1" if case.get("profile") == "P0" and case.get("p0_layout") == "print" else case.get("profile", "P0")
 
 
 def load_yaml(name: str) -> dict:

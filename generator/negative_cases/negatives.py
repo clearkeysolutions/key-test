@@ -13,7 +13,9 @@ GENERIC = ("random_codeword", "heavy_corruption", "splice", "mirror", "foreign_g
 
 
 def kinds_for(profile: str, stratum: str) -> tuple[str, ...]:
-    base = FEC_SINGLE_BLOCK if profile in ("P1", "P2") else GENERIC
+    # Profile 0 now has the full set: its block layout (spec 0.27) lets the independent RS
+    # oracle build t+1 and CRC-forge codewords.
+    base = FEC_SINGLE_BLOCK if profile in ("P0", "P0.1", "P1", "P2") else GENERIC
     if stratum == "S05":  # mirror/reflection rejection is S05's subject: half of its negatives
         return tuple(x for k in base for x in ([k, "mirror"] if k != "mirror" else []))
     return base
