@@ -244,6 +244,8 @@ class Campaign:
         sig = signing.sign(fp, self.data / "keys")
         for f in (self.data / "results" / "structured").glob("*.gz"):
             os.chmod(f, 0o444)
+        from analysis.triage import triage as tri
+        (self.data / "reports" / "counterexamples_structured.json").write_text(json.dumps(tri.catalogue(con, "structured"), indent=1))
         if self.state == "CLASSIFY":
             self.transition("REPORT_1M", {"freeze_sha256": file_sha256(fp), "signature": sig})
         self.log(f"report: {m}")

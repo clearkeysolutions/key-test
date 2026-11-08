@@ -14,6 +14,7 @@
   ./ckt verify [--sample N]         offline verification: hashes, signatures, sampled re-execution
   ./ckt archive --dest DIR          copy permanent assets with SHA256SUMS (never deletes anything)
   ./ckt smoke [--cases N]           one-command local smoke run in a scratch directory
+  ./ckt triage [--cohort C]         categorized counterexamples + proposed conformance vectors
 """
 from __future__ import annotations
 
@@ -166,10 +167,14 @@ def archive(c: Campaign, dest: Path) -> None:
     out = dest / f"ckey-test-archive-{stamp}"
     out.mkdir(parents=True)
     subprocess.run(["git", "-C", str(ROOT), "bundle", "create", str(out / "ckey-test.bundle"), "--all"], check=True)
+    # The holdout seed stays sealed until the holdout has been used; afterwards it is archived so the
+    # holdout can be audited against the commitment recorded in lock.json.
+    sealed = STATES.index(c.state) < STATES.index("INDEPENDENT_HOLDOUT")
+    excluded = ("holdout_secret", "campaign_ed25519") if sealed else ("campaign_ed25519",)
     for sub in ("state", "manifests", "reports", "plans", "results", "traces", "infra", "retries", "keys"):
         src = c.data / sub
         if src.exists():
-            shutil.copytree(src, out / sub, ignore=shutil.ignore_patterns("holdout_secret", "campaign_ed25519"))
+            shutil.copytree(src, out / sub, ignore=shutil.ignore_patterns(*excluded))
     imgs = c.data / "images"
     if imgs.exists():  # documented retention: all wrong-payload frames, capped failure crops, sampled successes
         shutil.copytree(imgs, out / "images", ignore=shutil.ignore_patterns(".slots"))
@@ -226,6 +231,7 @@ def main() -> None:
     sp = sub.add_parser("verify"); sp.add_argument("--sample", type=int, default=50)
     sp = sub.add_parser("archive"); sp.add_argument("--dest", type=Path, required=True)
     sp = sub.add_parser("smoke"); sp.add_argument("--cases", type=int, default=120)
+    sp = sub.add_parser("triage"); sp.add_argument("--cohort", default="structured")
     a = ap.parse_args()
     if a.cmd == "smoke":
         return smoke(a.cases)
@@ -266,6 +272,15 @@ def main() -> None:
             sys.exit(1 if verify(c, a.sample) else 0)
         elif a.cmd == "archive":
             archive(c, a.dest)
+        elif a.cmd == "triage":
+            from analysis.metrics import db as dbm
+            from analysis.triage import triage as tri
+            con = dbm.connect(c.data / "db" / "results.sqlite")
+            cat = tri.catalogue(con, a.cohort)
+            (c.data / "reports" / f"counterexamples_{a.cohort}.json").write_text(json.dumps(cat, indent=1))
+            vec = tri.conformance_vectors(con, c.data)
+            (c.data / "reports" / "proposed_conformance_vectors.json").write_text(json.dumps(vec, indent=1))
+            print(f"{len(cat['cells'])} failure cells, {len(cat['wrong_payloads'])} wrong payloads -> {c.data / 'reports'}")
     except Halt as e:
         print(f"\nCAMPAIGN HALTED: {e}\nNothing was skipped. Inspect campaign/infra/ and the report, fix the cause, then ./ckt resume.", file=sys.stderr)
         sys.exit(3)

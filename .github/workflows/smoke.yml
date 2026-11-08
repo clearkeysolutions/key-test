@@ -1,0 +1,24 @@
+# CI smoke only (SPEC §8: GitHub-hosted runners cannot economically run the
+# 1.5M campaign; it runs on a dedicated machine via scripts/run.sh).
+name: smoke
+on:
+  push:
+  pull_request:
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Pinned ckey, build, selftest, consistency (no benchmark)
+        run: |
+          COMMIT=$(grep -oE '[0-9a-f]{40}' configs/baseline.yaml | head -1)
+          git clone --filter=blob:none https://github.com/clearkeysolutions/ckey third_party/ckey
+          git -C third_party/ckey checkout --quiet "$COMMIT"
+          python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+          cmake -S runners/native -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release -DCKEY_SOURCE_DIR=$PWD/third_party/ckey
+          cmake --build build/native -j
+          ./build/native/ckt_worker --selftest
+      - name: Smoke run (real worker, supervisor, ingest, report)
+        run: ./ckt smoke --cases 40

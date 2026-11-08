@@ -1,0 +1,397 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "ckey-test/schemas/result.json",
+ "title": "CKey test case result",
+ "description": "One line of a results shard. Contains every per-case field required by SPEC section 10 plus diagnostics. Lines with status other than COMPLETED are audit records, not completed cases.",
+ "type": "object",
+ "required": [
+  "status",
+  "case_id"
+ ],
+ "properties": {
+  "status": {
+   "enum": [
+    "COMPLETED",
+    "INVALID_GENERATION",
+    "HARNESS_ERROR"
+   ]
+  },
+  "case_id": {
+   "type": "string"
+  },
+  "cohort": {
+   "type": "string"
+  },
+  "stratum": {
+   "type": "string"
+  },
+  "profile": {
+   "type": "string"
+  },
+  "mode": {
+   "type": "string"
+  },
+  "sev_bin": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "factor": {
+   "type": "string"
+  },
+  "severity": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "payload_family": {
+   "type": "string"
+  },
+  "payload_hash": {
+   "type": "string"
+  },
+  "payload_len": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "format_version": {
+   "type": "string"
+  },
+  "seed": {
+   "type": "string"
+  },
+  "renderer_sha": {
+   "type": "string"
+  },
+  "scanner_sha": {
+   "type": "string"
+  },
+  "model_sha": {
+   "type": "string"
+  },
+  "harness_sha": {
+   "type": "string"
+  },
+  "camera_model": {
+   "type": "string"
+  },
+  "transformations": {
+   "type": "string"
+  },
+  "image_hash": {
+   "type": "string",
+   "description": "SHA-256 over (width, height, luma bytes) of every frame, in order."
+  },
+  "expected_outcome": {
+   "type": "string"
+  },
+  "observed_outcome": {
+   "enum": [
+    "DECODED",
+    "NO_READ",
+    "WRONG_PAYLOAD",
+    "CRASH",
+    "TIMEOUT"
+   ]
+  },
+  "success": {
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "wrong_payload": {
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "accepted_match": {
+   "enum": [
+    "A",
+    "ALLOWED",
+    "OTHER",
+    "none"
+   ]
+  },
+  "accepted_profile": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "neg_kind": {
+   "type": "string"
+  },
+  "finder_detected": {
+   "type": [
+    "boolean",
+    "null"
+   ],
+   "description": "A border candidate matched the ground-truth field (the public API exposes borders, not individual finders)."
+  },
+  "orientation_correct": {
+   "type": [
+    "boolean",
+    "null"
+   ],
+   "description": "Inferred: true when the accepted payload is correct, false when wrong, null on no-read (the API does not expose orientation separately)."
+  },
+  "localization_error": {
+   "type": [
+    "number",
+    "null"
+   ],
+   "description": "Max corner distance (px) between the reader's refined quad and the ground-truth field corners, minimised over corner order; ckey pixel-centre convention."
+  },
+  "localization_error_modules": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "FEC_corrections": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "erasures": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "frame_count": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "frames_planned": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "success_frame": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "elapsed_ms": {
+   "type": [
+    "number",
+    "null"
+   ],
+   "description": "Reader wall time summed over the frames of the attempt (host-side)."
+  },
+  "decode_ms_first": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "tts_ms": {
+   "type": [
+    "number",
+    "null"
+   ],
+   "description": "Time to success at the reader's 20 fps sampling (sequences)."
+  },
+  "sim_ms": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "peak_memory": {
+   "type": [
+    "integer",
+    "null"
+   ],
+   "description": "Peak C++ heap bytes during the case (worker process; reader + simulator)."
+  },
+  "failure_reason": {
+   "type": "string"
+  },
+  "trace_uri": {
+   "type": "string",
+   "description": "traces/<plan_set>/<shard>.jsonl.gz#<case_id>"
+  },
+  "image_uri": {
+   "type": "string"
+  },
+  "borders": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "gt_rank": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "gt_quad_decodes": {
+   "type": [
+    "integer",
+    "null"
+   ],
+   "description": "Failure triage only: 1 if the production decoder reads the frame when given the true field corners (localization-limited), 0 if not, -1 not evaluated."
+  },
+  "frame_w": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "frame_h": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "p0_version": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "read_version": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "phys_class": {
+   "enum": [
+    "RECOVERABLE",
+    "MARGINAL",
+    "UNRECOVERABLE",
+    "NOT_APPLICABLE"
+   ],
+   "description": "Physical recoverability (recov-v1) from px/module, MTF x contrast vs noise (d'), occlusion/saturation vs ECC budget, and cropping."
+  },
+  "phys_reason": {
+   "type": "string"
+  },
+  "ppm_min": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "ppm_mean": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "blur_px": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "blur_modules": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "mtf": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "dprime": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "contrast": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "occluded": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "saturated": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "byte_err_est": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "in_frame": {
+   "type": [
+    "boolean",
+    "null"
+   ]
+  },
+  "ecc_fraction": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "rs_verified": {
+   "type": [
+    "integer",
+    "null"
+   ]
+  },
+  "crosscheck": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "texture_px": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "electrons_white": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "digital_gain": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "versions": {
+   "type": "string"
+  },
+  "error": {
+   "type": "string"
+  },
+  "supervisor_detail": {
+   "type": "string"
+  }
+ }
+}

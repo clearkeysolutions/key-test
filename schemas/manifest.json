@@ -1,0 +1,60 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "ckey-test/schemas/manifest.json",
+ "title": "Sealed shard record",
+ "description": "One line of campaign/manifests/<plan_set>.jsonl, appended when a shard is sealed (append-only). Roll-ups of these records are hashed into the signed freeze records.",
+ "type": "object",
+ "required": [
+  "shard",
+  "stem",
+  "cases",
+  "results_sha256",
+  "plan_sha256",
+  "worker_sha256",
+  "sealed_at"
+ ],
+ "properties": {
+  "shard": {
+   "type": "integer"
+  },
+  "stem": {
+   "type": "string"
+  },
+  "cases": {
+   "type": "integer"
+  },
+  "duplicate_lines": {
+   "type": "integer"
+  },
+  "success": {
+   "type": "integer"
+  },
+  "wrong_payload": {
+   "type": "integer"
+  },
+  "reader_faults": {
+   "type": "integer"
+  },
+  "results_sha256": {
+   "type": "string"
+  },
+  "traces_sha256": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "plan_sha256": {
+   "type": "string"
+  },
+  "worker_sha256": {
+   "type": "string"
+  },
+  "host": {
+   "type": "string"
+  },
+  "sealed_at": {
+   "type": "number"
+  }
+ }
+}

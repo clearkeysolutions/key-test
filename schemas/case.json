@@ -1,0 +1,374 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "ckey-test/schemas/case.json",
+ "title": "CKey test case plan line",
+ "description": "One line of a plan shard (ckt-case-v1). Generated from ckt_worker --print-schema; the worker rejects unknown keys. Absent keys take the worker defaults in simulation/case_spec.h.",
+ "x-schema-version": "ckt-case-v1",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "case_id",
+  "cohort",
+  "stratum",
+  "profile",
+  "seed",
+  "expected"
+ ],
+ "properties": {
+  "case_id": {
+   "type": "string"
+  },
+  "cohort": {
+   "type": "string"
+  },
+  "stratum": {
+   "type": "string"
+  },
+  "profile": {
+   "enum": [
+    "P0",
+    "P1",
+    "P2",
+    "P3"
+   ]
+  },
+  "seed": {
+   "type": "string"
+  },
+  "mode": {
+   "type": "string"
+  },
+  "pool": {
+   "type": "string"
+  },
+  "sev_bin": {
+   "type": "integer"
+  },
+  "factor": {
+   "type": "string"
+  },
+  "severity": {
+   "type": "number"
+  },
+  "payload_family": {
+   "type": "string"
+  },
+  "expected": {
+   "enum": [
+    "DECODE",
+    "DECODE_ANY_OF",
+    "REJECT",
+    "NO_WRONG"
+   ]
+  },
+  "p0_version": {
+   "type": "integer"
+  },
+  "p0_level": {
+   "type": "string"
+  },
+  "p0_layout": {
+   "type": "string"
+  },
+  "p3_tier": {
+   "type": "integer"
+  },
+  "payload_len": {
+   "type": "integer"
+  },
+  "payload_pattern": {
+   "type": "string"
+  },
+  "payload_seed": {
+   "type": "string"
+  },
+  "neg_kind": {
+   "type": "string"
+  },
+  "neg_param": {
+   "type": "number"
+  },
+  "second_code": {
+   "type": "integer"
+  },
+  "rasterizer": {
+   "type": "string"
+  },
+  "second_profile": {
+   "type": "string"
+  },
+  "color_mode": {
+   "type": "string"
+  },
+  "fg_rgb": {
+   "type": "array",
+   "items": {
+    "type": "number"
+   }
+  },
+  "bg_rgb": {
+   "type": "array",
+   "items": {
+    "type": "number"
+   }
+  },
+  "bg_alpha": {
+   "type": "number"
+  },
+  "mix_srgb": {
+   "type": "integer"
+  },
+  "substrate": {
+   "type": "string"
+  },
+  "symbol_mm": {
+   "type": "number"
+  },
+  "sheet_margin": {
+   "type": "number"
+  },
+  "sheet_rgb": {
+   "type": "array",
+   "items": {
+    "type": "number"
+   }
+  },
+  "print_dpi": {
+   "type": "number"
+  },
+  "dot_gain_mm": {
+   "type": "number"
+  },
+  "paper_blur_mm": {
+   "type": "number"
+  },
+  "halftone_lpi": {
+   "type": "number"
+  },
+  "ink_density": {
+   "type": "number"
+  },
+  "paper_texture": {
+   "type": "number"
+  },
+  "disp_ppi": {
+   "type": "number"
+  },
+  "disp_fill": {
+   "type": "number"
+  },
+  "disp_layout": {
+   "type": "integer"
+  },
+  "disp_brightness": {
+   "type": "number"
+  },
+  "disp_refresh_amp": {
+   "type": "number"
+  },
+  "disp_refresh_period": {
+   "type": "number"
+  },
+  "disp_glass": {
+   "type": "number"
+  },
+  "device": {
+   "type": "string"
+  },
+  "frame_w": {
+   "type": "integer"
+  },
+  "frame_h": {
+   "type": "integer"
+  },
+  "focal_px": {
+   "type": "number"
+  },
+  "k1": {
+   "type": "number"
+  },
+  "k2": {
+   "type": "number"
+  },
+  "full_well_e": {
+   "type": "number"
+  },
+  "read_noise_e": {
+   "type": "number"
+  },
+  "prnu": {
+   "type": "number"
+  },
+  "adc_bits": {
+   "type": "integer"
+  },
+  "max_signal_e": {
+   "type": "number"
+  },
+  "device_seed": {
+   "type": "string"
+  },
+  "distance_mm": {
+   "type": "number"
+  },
+  "roll": {
+   "type": "number"
+  },
+  "yaw": {
+   "type": "number"
+  },
+  "pitch": {
+   "type": "number"
+  },
+  "center_x": {
+   "type": "number"
+  },
+  "center_y": {
+   "type": "number"
+  },
+  "bend_radius_mm": {
+   "type": "number"
+  },
+  "bend_axis": {
+   "type": "number"
+  },
+  "lens_sigma_px": {
+   "type": "number"
+  },
+  "lens_sigma_edge_px": {
+   "type": "number"
+  },
+  "defocus_gauss_px": {
+   "type": "number"
+  },
+  "defocus_disc_px": {
+   "type": "number"
+  },
+  "ca_px": {
+   "type": "number"
+  },
+  "vignette": {
+   "type": "number"
+  },
+  "motion_px": {
+   "type": "number"
+  },
+  "motion_angle": {
+   "type": "number"
+  },
+  "rs_ratio": {
+   "type": "number"
+  },
+  "rot_blur_deg": {
+   "type": "number"
+  },
+  "zoom_blur": {
+   "type": "number"
+  },
+  "samples": {
+   "type": "integer"
+  },
+  "illum": {
+   "type": "number"
+  },
+  "ae_bias": {
+   "type": "number"
+  },
+  "bayer": {
+   "type": "integer"
+  },
+  "grad": {
+   "type": "number"
+  },
+  "grad_angle": {
+   "type": "number"
+  },
+  "shadows": {
+   "type": "integer"
+  },
+  "shadow_depth": {
+   "type": "number"
+  },
+  "shadow_soft_mm": {
+   "type": "number"
+  },
+  "glare_spots": {
+   "type": "integer"
+  },
+  "glare_peak": {
+   "type": "number"
+  },
+  "glare_radius_frac": {
+   "type": "number"
+  },
+  "veil": {
+   "type": "number"
+  },
+  "occl_kind": {
+   "type": "string"
+  },
+  "occl_frac": {
+   "type": "number"
+  },
+  "occl_count": {
+   "type": "integer"
+  },
+  "tone": {
+   "type": "integer"
+  },
+  "denoise": {
+   "type": "number"
+  },
+  "sharpen": {
+   "type": "number"
+  },
+  "sharpen_sigma": {
+   "type": "number"
+  },
+  "jpeg_q": {
+   "type": "integer"
+  },
+  "rescale": {
+   "type": "number"
+  },
+  "video_range": {
+   "type": "integer"
+  },
+  "clutter": {
+   "type": "number"
+  },
+  "distractors": {
+   "type": "integer"
+  },
+  "bg_level": {
+   "type": "number"
+  },
+  "ideal": {
+   "type": "integer"
+  },
+  "ideal_ppm": {
+   "type": "number"
+  },
+  "target_ppm": {
+   "type": "number"
+  },
+  "frames": {
+   "type": "integer"
+  },
+  "shake_px": {
+   "type": "number"
+  },
+  "shake_roll": {
+   "type": "number"
+  },
+  "focus_drift": {
+   "type": "number"
+  },
+  "exposure_drift": {
+   "type": "number"
+  },
+  "frame_motion_px": {
+   "type": "number"
+  }
+ }
+}

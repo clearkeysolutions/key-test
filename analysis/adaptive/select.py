@@ -81,6 +81,8 @@ def weakness_scores(con: sqlite3.Connection) -> list[dict]:
     out = []
     for (s, p, b), c in cells.items():
         n = c["n"]
+        if n == 0 and not wrong_any[(s, p, b)]:
+            continue  # every case physically unrecoverable: nothing to learn about the reader here
         noread = 1 - c["ok"] / n if n else 0.0
         lo, hi = wilson(c["ok"], n) if n else (0, 1)
         p95 = quantile(c["lat"], .95) or 0.0
@@ -202,6 +204,8 @@ def parse_case_id(cid: str) -> tuple:
 
 def init_tracks(con: sqlite3.Connection, scores: list[dict], n_tracks: int) -> list[dict]:
     eligible = [r for r in scores if r["stratum"] in HARDER]
+    if not eligible:
+        return []
     alloc = allocate(eligible, n_tracks, 1, n_tracks)
     tracks = []
     for cell, n in alloc:
@@ -286,6 +290,15 @@ class Boundary:
             ranked = sorted([t for t in tr_all if t["status"] in ("bounded", "fails_at_easy", "bisect")], key=lambda t: self.difficulty(t)) or tr_all
             cases = []
             j = 0
+            if not ranked:  # no tracks at all: spend the pool on the hardest bins of the continuous strata
+                strata = sorted(HARDER)
+                while len(cases) < left:
+                    s, prof = strata[j % len(strata)], PROFILES[(j // len(strata)) % 4]
+                    c = make_case("adaptive", MASTER, s, prof, 4, "joint", j, case_id=f"adaptive-bs-fill-x{j:06d}")
+                    c["pool"] = "boundary_search"
+                    cases.append(c)
+                    j += 1
+                return "fill", cases
             while len(cases) < left:
                 t = ranked[j % len(ranked)]
                 c = probe_cases(t, t["fail"], "fill", 1, tag=f"-p{j // len(ranked)}")[0]
