@@ -38,6 +38,28 @@ namespace ckt {
 inline constexpr const char *SIM_VERSION = "ckt-sim-v2";        // v2: display area integration, glare-aware physics
 inline constexpr const char *RECOVERABILITY_VERSION = "recov-v2";  // v2: washed-out (glare) area counts as site loss
 
+// Bessel J1. libstdc++ provides std::cyl_bessel_j (used on Linux, so campaign results are
+// unchanged); Apple's libc++ does not, so macOS uses the Numerical Recipes rational
+// approximation (|error| < 1e-8), which only affects the informational MTF estimate.
+inline double bessel_j1(double x) {
+#if defined(_LIBCPP_VERSION)
+    const double ax = std::abs(x);
+    if (ax < 8.0) {
+        const double y = x * x;
+        const double a = x * (72362614232.0 + y * (-7895059235.0 + y * (242396853.1 + y * (-2972611.439 + y * (15704.48260 + y * (-30.16036606))))));
+        const double b = 144725228442.0 + y * (2300535178.0 + y * (18583304.74 + y * (99447.43394 + y * (376.9991397 + y))));
+        return a / b;
+    }
+    const double z = 8.0 / ax, y = z * z, xx = ax - 2.356194491;
+    const double a = 1.0 + y * (0.183105e-2 + y * (-0.3516396496e-4 + y * (0.2457520174e-5 + y * (-0.240337019e-6))));
+    const double b = 0.04687499995 + y * (-0.2002690873e-3 + y * (0.8449199096e-5 + y * (-0.88228987e-6 + y * 0.105787412e-6)));
+    const double r = std::sqrt(0.636619772 / ax) * (std::cos(xx) * a - z * std::sin(xx) * b);
+    return x < 0 ? -r : r;
+#else
+    return std::cyl_bessel_j(1.0, x);
+#endif
+}
+
 struct Phys {
     double ppm_min = 0, ppm_mean = 0;   // output-frame pixels per module (worst local direction / mean)
     double blur_sigma_px = 0;           // combined Gaussian-equivalent blur (output px)
@@ -702,7 +724,7 @@ private:
         const double fpx = 0.5 / std::max(1e-6, p.ppm_min / rs);  // cycles per sensor px at the module fundamental
         auto sinc = [](double x) { return std::abs(x) < 1e-9 ? 1.0 : std::abs(std::sin(kPiD * x) / (kPiD * x)); };
         double mtf = std::exp(-2 * kPiD * kPiD * g2 * fpx * fpx) * sinc(fpx) * sinc(c.motion_px * fpx);
-        if (c.defocus_disc_px > 0.3) { const double z = 2 * kPiD * c.defocus_disc_px * fpx; mtf *= std::abs(2 * std::cyl_bessel_j(1.0, z) / z); }
+        if (c.defocus_disc_px > 0.3) { const double z = 2 * kPiD * c.defocus_disc_px * fpx; mtf *= std::abs(2 * bessel_j1(z) / z); }
         if (fpx >= 1.0) mtf = 0;  // beyond the sampling limit (< 0.5 px per module)
         p.mtf = mtf;
         float fg[3], bg[3]; rgb_lin(c.fg_rgb, fg); rgb_lin(c.bg_rgb, bg);

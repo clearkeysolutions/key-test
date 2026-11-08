@@ -2,8 +2,14 @@
 // which include the statically linked ckey core). Single-threaded worker.
 #include <cstddef>
 #include <cstdlib>
-#include <malloc.h>
 #include <new>
+#if defined(__APPLE__)
+#include <malloc/malloc.h>
+#define ckt_usable_size(p) malloc_size(p)
+#else
+#include <malloc.h>
+#define ckt_usable_size(p) malloc_usable_size(p)
+#endif
 
 namespace ckt_alloc {
 size_t current = 0, peak = 0;
@@ -11,13 +17,13 @@ size_t current = 0, peak = 0;
 
 static void *track(void *p) {
     if (!p) throw std::bad_alloc();
-    ckt_alloc::current += malloc_usable_size(p);
+    ckt_alloc::current += ckt_usable_size(p);
     if (ckt_alloc::current > ckt_alloc::peak) ckt_alloc::peak = ckt_alloc::current;
     return p;
 }
 static void untrack(void *p) {
     if (!p) return;
-    ckt_alloc::current -= malloc_usable_size(p);
+    ckt_alloc::current -= ckt_usable_size(p);
     std::free(p);
 }
 
@@ -25,7 +31,7 @@ void *operator new(size_t n) { return track(std::malloc(n ? n : 1)); }
 void *operator new[](size_t n) { return track(std::malloc(n ? n : 1)); }
 void *operator new(size_t n, std::align_val_t a) { return track(std::aligned_alloc(static_cast<size_t>(a), (n + static_cast<size_t>(a) - 1) / static_cast<size_t>(a) * static_cast<size_t>(a))); }
 void *operator new[](size_t n, std::align_val_t a) { return operator new(n, a); }
-void *operator new(size_t n, const std::nothrow_t &) noexcept { void *p = std::malloc(n ? n : 1); if (p) { ckt_alloc::current += malloc_usable_size(p); if (ckt_alloc::current > ckt_alloc::peak) ckt_alloc::peak = ckt_alloc::current; } return p; }
+void *operator new(size_t n, const std::nothrow_t &) noexcept { void *p = std::malloc(n ? n : 1); if (p) { ckt_alloc::current += ckt_usable_size(p); if (ckt_alloc::current > ckt_alloc::peak) ckt_alloc::peak = ckt_alloc::current; } return p; }
 void *operator new[](size_t n, const std::nothrow_t &t) noexcept { return operator new(n, t); }
 void operator delete(void *p) noexcept { untrack(p); }
 void operator delete[](void *p) noexcept { untrack(p); }

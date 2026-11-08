@@ -95,6 +95,7 @@ The highest label the tooling can assign is `CERTIFICATION_CANDIDATE`. `CERTIFIE
 
 | | |
 |---|---|
+| The CI smoke check on your own Mac/Linux box (no GitHub Actions) | `scripts/local_check.sh` |
 | Smoke run, about 1 minute | `./ckt smoke --cases 60` |
 | Whole pipeline at 1/2000 scale (never qualifies) | `CKT_TEST_SCALE=2000 ./ckt --data-dir /tmp/ckt-test run --approver test` |
 | Selftest | `./build/native/ckt_worker --selftest` |
