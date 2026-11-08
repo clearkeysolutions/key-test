@@ -336,6 +336,10 @@ class Supervisor:
             r2 = R2(self.data)
             if r2.enabled:
                 r2.upload_shard(self.set, stem)
+            elif not getattr(self, "_r2_warned", False):
+                self._r2_warned = True
+                self.infra(kind="r2_not_configured", stem=stem, note="R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY not in the environment; run ./ckt sync later")
+                self.log("  NOTE: R2 not configured in this process; shards stay local until ./ckt sync")
         except Exception as e:
             self.infra(kind="r2_upload_deferred", stem=stem, error=repr(e)[:300])
 

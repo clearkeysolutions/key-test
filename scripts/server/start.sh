@@ -4,6 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 APPROVER=${1:-}
+export PYTHONUNBUFFERED=1   # progress lines reach the log immediately
 [ -f ~/.config/ckey-test/r2.env ] && { set -a; . ~/.config/ckey-test/r2.env; set +a; echo "R2: bucket ${R2_BUCKET:-ckey-hardening-test}"; }
 mkdir -p campaign/logs
 LOG="campaign/logs/server-$(date -u +%Y%m%dT%H%M%SZ).log"
