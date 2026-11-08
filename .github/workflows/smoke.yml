@@ -1,9 +1,9 @@
 # CI smoke only (SPEC §8: GitHub-hosted runners cannot economically run the
 # 1.5M campaign; it runs on a dedicated machine via scripts/run.sh).
 name: smoke
+# Manual only (owner decision): never runs on push. Start it from the Actions tab if wanted.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 jobs:
   smoke:
     runs-on: ubuntu-24.04

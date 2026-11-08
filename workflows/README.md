@@ -1,6 +1,6 @@
 # Workflows
 
-* `.github/workflows/smoke.yml` (CI). On every push it builds against the pinned ckey commit, runs the selftest, and does a 40-case smoke run. It deliberately does not run campaign volumes.
+* `.github/workflows/smoke.yml` (CI, **manual only**). It never runs on push; start it from the Actions tab if wanted. It builds against the pinned ckey commit, runs the selftest, and does a 40-case smoke run. Nothing in the campaign depends on GitHub Actions.
 * **Campaign workflow (dedicated machine).** `scripts/preflight.sh`, then `scripts/run.sh --approver NAME`, then `scripts/resume.sh` as needed. The state machine (`runners/campaign.py`) enforces the order:
   BASELINE_LOCKED → GENERATE → VALIDATE_ARTIFACT (incl. pilot) → EXECUTE → CLASSIFY → REPORT_1M → SELECT_WEAKNESSES → EXECUTE_500K → PROPOSE_FIX → BUILD → REGRESSION → INDEPENDENT_HOLDOUT → CERTIFICATION_REVIEW → ARCHIVE.
   Every transition is appended to `campaign/state/transitions.jsonl`.
