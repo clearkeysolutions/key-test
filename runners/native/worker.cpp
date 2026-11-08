@@ -298,7 +298,7 @@ public:
           << ",\"phys_class\":" << jstr(p.cls) << ",\"phys_reason\":" << jstr(p.reason) << ",\"ppm_min\":" << jnum(p.ppm_min) << ",\"ppm_mean\":" << jnum(p.ppm_mean)
           << ",\"blur_px\":" << jnum(p.blur_sigma_px) << ",\"blur_modules\":" << jnum(p.ppm_mean > 0 ? p.blur_sigma_px / p.ppm_mean : -1) << ",\"mtf\":" << jnum(p.mtf)
           << ",\"dprime\":" << jnum(std::min(p.dprime, 1e6)) << ",\"contrast\":" << jnum(p.contrast) << ",\"occluded\":" << jnum(p.occluded)
-          << ",\"saturated\":" << jnum(p.saturated) << ",\"byte_err_est\":" << jnum(p.byte_err_est) << ",\"in_frame\":" << (p.in_frame ? "true" : "false")
+          << ",\"saturated\":" << jnum(p.saturated) << ",\"glare_loss\":" << jnum(p.glare_loss) << ",\"byte_err_est\":" << jnum(p.byte_err_est) << ",\"in_frame\":" << (p.in_frame ? "true" : "false")
           << ",\"ecc_fraction\":" << jnum(art.ecc_fraction) << ",\"rs_verified\":" << art.rs_verified << ",\"crosscheck\":" << jnum(fr0.crosscheck)
           << ",\"texture_px\":" << jnum(fr0.texture_px) << ",\"electrons_white\":" << jnum(fr0.electrons_white) << ",\"digital_gain\":" << jnum(fr0.digital_gain)
           << ",\"versions\":" << jstr(std::string(WORKER_VERSION) + "|" + SIM_VERSION + "|" + ADAPTER_VERSION + "|" + RECOVERABILITY_VERSION + "|" + CASE_SCHEMA_VERSION) << "}";

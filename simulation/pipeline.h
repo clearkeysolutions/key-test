@@ -35,8 +35,8 @@
 
 namespace ckt {
 
-inline constexpr const char *SIM_VERSION = "ckt-sim-v1";
-inline constexpr const char *RECOVERABILITY_VERSION = "recov-v1";
+inline constexpr const char *SIM_VERSION = "ckt-sim-v2";        // v2: display area integration, glare-aware physics
+inline constexpr const char *RECOVERABILITY_VERSION = "recov-v2";  // v2: washed-out (glare) area counts as site loss
 
 struct Phys {
     double ppm_min = 0, ppm_mean = 0;   // output-frame pixels per module (worst local direction / mean)
@@ -47,6 +47,7 @@ struct Phys {
     double occluded = 0;                // field fraction covered by damage / occluders
     double byte_err_est = 0;            // byte-error fraction implied by occlusion + saturation
     double saturated = 0;               // field fraction clipped
+    double glare_loss = 0;              // field fraction where specular radiance >= half the white level (contrast washed out)
     bool in_frame = true;
     std::string cls = "RECOVERABLE";    // RECOVERABLE | MARGINAL | UNRECOVERABLE
     std::string reason;
@@ -547,6 +548,23 @@ private:
                                      (cu0[i] < -half_canvas && cu0[i + 1] < -half_canvas && cu1[i] < -half_canvas && cu1[i + 1] < -half_canvas) ||
                                      (cv0[i] > half_canvas && cv0[i + 1] > half_canvas && cv1[i] > half_canvas && cv1[i + 1] > half_canvas) ||
                                      (cv0[i] < -half_canvas && cv0[i + 1] < -half_canvas && cv1[i] < -half_canvas && cv1[i + 1] < -half_canvas));
+                if (in.display && interp && !smooth) {
+                    // Camera pixel footprint on the screen (axis-aligned bound of the four corners).
+                    const double us[4] = {cu0[i], cu0[i + 1], cu1[i], cu1[i + 1]}, vs[4] = {cv0[i], cv0[i + 1], cv1[i], cv1[i + 1]};
+                    const double umin = *std::min_element(us, us + 4), umax = *std::max_element(us, us + 4);
+                    const double vmin = *std::min_element(vs, vs + 4), vmax = *std::max_element(vs, vs + 4);
+                    const double half = in.canvas_mm / 2, cu = (umin + umax) / 2, cv = (vmin + vmax) / 2;
+                    if (std::abs(cu) <= half && std::abs(cv) <= half && in.damage.empty()) {
+                        const float il = in.light.illum(cu, cv), sp = in.light.specular(cu, cv);
+                        for (int ch = 0; ch < C; ++ch) {
+                            const double mu = in.mirror ? -1 : 1;
+                            const double a0 = (in.mirror ? -umax : umin) + half, a1 = (in.mirror ? -umin : umax) + half;
+                            (void)mu;
+                            rad.c[ch].at(x, y) = static_cast<float>(in.screen.box_mean(a0, vmin + half, a1, vmax + half, ch) * band + in.screen.m.glass_reflect * il + sp);
+                        }
+                        continue;
+                    }
+                }
                 const int NN = smooth ? 1 : N;
                 for (int k = 0; k < NN; ++k) {
                     double u, v;
@@ -695,14 +713,16 @@ private:
         const double k = st.electrons_white, dsig = std::abs(Lf - Lb) * illum_c * k * mtf, mean_e = (Lf + Lb) / 2 * illum_c * k;
         p.dprime = dsig / std::sqrt(std::max(1e-9, mean_e + c.read_noise_e * c.read_noise_e));
         // Occlusion over a 64x64 field grid (surface damage + finger).
-        int occ = 0, tot = 0;
+        int occ = 0, tot = 0, glare_pts = 0;
         for (int j = 0; j < 64; ++j) for (int i = 0; i < 64; ++i) {
             const double cu = fq[0] + (fq[2] - fq[0]) * (i + 0.5) / 64, cv = fq[1] + (fq[5] - fq[1]) * (j + 0.5) / 64;
             float dummy = 0; bool hole = false; bool hit = damage_at(in.damage, cu, cv, 0, dummy, hole);
+            if (in.light.specular(cu - in.canvas_mm / 2, cv - in.canvas_mm / 2) >= 0.5f) ++glare_pts;
             if (!hit && finger.on) { double px, py; if (in.cam.project(in.pose, (in.mirror ? -1 : 1) * (cu - in.canvas_mm / 2), cv - in.canvas_mm / 2, px, py)) hit = finger_alpha(finger, px, py) > 0.5f; }
             occ += hit; ++tot;
         }
         p.occluded = static_cast<double>(occ) / tot;
+        p.glare_loss = static_cast<double>(glare_pts) / tot;
         // Saturation inside the field quad.
         int sat = 0, cnt = 0;
         const int hi = c.video_range ? 234 : 254, lo = c.video_range ? 17 : 1;
@@ -735,7 +755,7 @@ public:
     // recov-v1 thresholds (mirrored in configs/strata.yaml; checked by preflight).
     static void classify(Phys &p, const SymbolArt &art) {
         // Pseudo-random bit placement: a site-loss fraction a damages a byte with probability 1-(1-a)^8.
-        const double a = std::min(1.0, p.occluded + p.saturated);
+        const double a = std::min(1.0, p.occluded + std::max(p.saturated, p.glare_loss));
         p.byte_err_est = 1 - std::pow(1 - a, 8);
         const double ecc = art.ecc_fraction, era = 2 * ecc;  // errors-only vs. erasure-assisted capacity
         std::string why;

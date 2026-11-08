@@ -1,6 +1,6 @@
 # Pre-registered structured campaign design (SPEC §4). Locked (SHA-256 recorded)
 # at BASELINE_LOCKED; any later edit invalidates the lock.
-version: strata-v2   # v2: Profile 0 only (P0 standard + P0.1 print), 1080p-first capture
+version: strata-v4   # v4: clean single-factor sweeps, Bayer only in S14/S15; v3: glare calibration; v2: P0 only, 1080p-class
 master_seed: "CKTEST-RH-001/structured/v1"   # public by design: the structured million is not a holdout
 cases_per_stratum: 50000
 # Scope (owner decision 2026-11-08): harden Profile 0. P1/P2 will be deprecated and P3
@@ -32,7 +32,7 @@ module_geometry:
 # Physical recoverability labels are computed by the worker (recov-v1); this
 # block mirrors runners/native/worker.cpp config_json() and preflight checks it.
 recoverability:
-  version: recov-v1
+  version: recov-v2   # washed-out (specular >= half white) field area counts as site loss
   unrecoverable: {ppm_min_lt: 1.0, dprime_lt: 1.0, mtf_contrast_lt: 0.01, byte_err_gt: "2*ecc", cropped: true}
   marginal: {ppm_min_lt: 2.0, dprime_lt: 3.0, byte_err_gt: "ecc"}
 

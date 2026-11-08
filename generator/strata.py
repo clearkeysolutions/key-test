@@ -85,7 +85,7 @@ def base_joint(p: dict, g: Geo, r: random.Random, k: int, scale: float = 1.0) ->
     if r.random() < 0.25:
         p["jpeg_q"] = r.randint(60, 95)
     if r.random() < 0.25:
-        p.update({"color_mode": "rgb", "bayer": 1})
+        p["color_mode"] = "rgb"  # no output-resolution Bayer: phone video is downscaled from a much larger sensor
     u = r.random()
     if u < 0.45:
         p.update({"substrate": "print", "print_dpi": (300, 600, 1200)[k % 3], "dot_gain_mm": round(r.uniform(0, 0.06), 4)})
@@ -198,8 +198,8 @@ def apply_S08(p, g, r, x, mode):
     if x < 500:
         p["read_noise_e"] = round(dev["read_noise_e"] * r.uniform(1.0, 2.5), 3)
     if r.random() < 0.5:
-        p["denoise"] = round(r.uniform(0.3, 0.9), 3)
-    if r.random() < 0.3:
+        p["denoise"] = round(r.uniform(0.3, 0.9), 3)  # ISP response to low light (part of the factor)
+    if mode != "sweep" and r.random() < 0.3:
         p["jpeg_q"] = r.randint(70, 90)
 
 
@@ -211,22 +211,26 @@ def apply_S09(p, g, r, x, mode):
         p["fg_rgb"], p["bg_rgb"] = dark, light
     else:
         p["fg_rgb"], p["bg_rgb"] = light, dark
-    if r.random() < 0.6:
-        p.update({"grad": round(r.uniform(0, 0.8), 3), "grad_angle": round(r.uniform(0, 360), 2)})
-    if r.random() < 0.6:
-        p.update({"shadows": r.randint(1, 3), "shadow_depth": round(r.uniform(0.3, 0.85), 3), "shadow_soft_mm": round(r.uniform(0.2, 5), 3)})
+    if mode != "sweep":  # uneven illumination and shadows combine with contrast in joint cases only
+        if r.random() < 0.6:
+            p.update({"grad": round(r.uniform(0, 0.8), 3), "grad_angle": round(r.uniform(0, 360), 2)})
+        if r.random() < 0.6:
+            p.update({"shadows": r.randint(1, 3), "shadow_depth": round(r.uniform(0.3, 0.85), 3), "shadow_soft_mm": round(r.uniform(0.2, 5), 3)})
 
 
 def apply_S10(p, g, r, x, mode):
     n = r.randint(1, 3)
+    peak = r.uniform(2, 8)
     p["glare_spots"] = n
-    p["glare_peak"] = round(r.uniform(4, 12), 3)
-    # Saturated area ~ n * pi * (1.2 r)^2 of the canvas area: solve r as a fraction of the canvas.
-    p["glare_radius_frac"] = round(math.sqrt(max(1e-6, x) / (n * math.pi)) / 1.2, 5)
-    if r.random() < 0.4:
-        p["veil"] = round(r.uniform(0, 0.3), 4)
-    if r.random() < 0.3:
-        p.update({"substrate": "print", "print_dpi": 600})
+    p["glare_peak"] = round(peak, 3)
+    # Coverage x = canvas fraction where a highlight exceeds the white level (peak*exp(-d^2/2r^2) >= 1):
+    # n * pi * r^2 * 2 ln(peak) = x * canvas_area  ->  r (as a fraction of the canvas side).
+    p["glare_radius_frac"] = round(math.sqrt(max(1e-6, x) / (2 * math.pi * n * math.log(peak))), 5)
+    if mode != "sweep":
+        if r.random() < 0.4:
+            p["veil"] = round(r.uniform(0, 0.12), 4)
+        if r.random() < 0.3:
+            p.update({"substrate": "print", "print_dpi": 600})
 
 
 OCCLUSION_KINDS = ("scratch", "tear", "missing_corner", "sticker", "finder_cover", "smudge", "finger")
@@ -247,7 +251,7 @@ def apply_S12(p, g, r, x, mode, k=0):
     paper = r.choice(["matte", "glossy", "newsprint"])
     if paper == "newsprint":
         p["bg_rgb" if p["fg_rgb"][0] < 128 else "fg_rgb"] = [200, 196, 185]
-    if paper == "glossy" and r.random() < 0.5:
+    if paper == "glossy" and mode != "sweep" and r.random() < 0.5:
         p.update({"glare_spots": 1, "glare_peak": round(r.uniform(1.5, 3), 3), "glare_radius_frac": round(r.uniform(0.05, 0.12), 4)})
     if r.random() < 0.25:
         p.update({"halftone_lpi": r.choice([85, 100, 133, 150]), "ink_density": round(r.uniform(0.6, 0.95), 3)})
@@ -255,20 +259,23 @@ def apply_S12(p, g, r, x, mode, k=0):
 
 def apply_S13(p, g, r, x, mode, k=0):
     ppi = (120, 220, 326, 401, 460)[k % 5]
-    p.update({"substrate": "display", "disp_ppi": ppi, "color_mode": "rgb", "bayer": 1,
+    p.update({"substrate": "display", "disp_ppi": ppi, "color_mode": "rgb",
               "disp_fill": round(r.uniform(0.5, 0.9), 3), "disp_layout": r.choice([0, 0, 1, 2]),
               "disp_brightness": round(r.uniform(0.8, 3.0), 3), "disp_glass": round(r.uniform(0.02, 0.08), 4)})
     g.module_mm = x * 25.4 / ppi     # x display pixels per module
     g.keep_module = True
-    if r.random() < 0.4:
-        p.update({"disp_refresh_amp": round(r.uniform(0.05, 0.3), 3), "disp_refresh_period": round(r.uniform(100, 600), 1), "rs_ratio": round(r.uniform(0.5, 3), 3)})
-    if r.random() < 0.2:
-        p.update({"glare_spots": 1, "glare_peak": round(r.uniform(1, 3), 3), "glare_radius_frac": 0.1})
+    if mode != "sweep":
+        if r.random() < 0.4:
+            p.update({"disp_refresh_amp": round(r.uniform(0.05, 0.3), 3), "disp_refresh_period": round(r.uniform(100, 600), 1), "rs_ratio": round(r.uniform(0.5, 3), 3)})
+        if r.random() < 0.2:
+            p.update({"glare_spots": 1, "glare_peak": round(r.uniform(1.5, 3), 3), "glare_radius_frac": 0.06})
     g.ppm = r.uniform(3.0, 6.0)      # camera px per module: the moire-prone range
 
 
 def apply_S14(p, g, r, x, mode):
     p["jpeg_q"] = int(round(x))
+    if r.random() < 0.3:
+        p.update({"color_mode": "rgb", "bayer": 1})  # output-resolution demosaic artifacts (worst case)
     p["sharpen"] = round(r.uniform(0, 1.5), 3)
     p["denoise"] = round(r.uniform(0, 1.0), 3)
     if r.random() < 0.5:
@@ -311,7 +318,7 @@ def apply_S17(p, g, r, x, mode):
     prof = p["profile"]
     slots = GEOM["ring_slots"].get(prof) or 72 * g.modules / 29
     p["rot_blur_deg"] = round(x * 360.0 / slots, 5)
-    if r.random() < 0.3:
+    if mode != "sweep" and r.random() < 0.3:
         p.update({"occl_kind": "scratch", "occl_frac": round(r.uniform(0.005, 0.03), 4), "occl_count": 1})
     g.ppm = vmin(p) * r.uniform(1.0, 1.6)
 
