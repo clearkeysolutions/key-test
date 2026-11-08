@@ -40,7 +40,8 @@ if len(recent) > 3:
     pst = time.strftime("%a %I:%M %p PT", time.gmtime(now + h * 3600 - 8 * 3600))
     print(f"rate: {rate:,.0f} cases/h  ->  all automated stages done in ~{h:.1f} h ({fin} = {pst})")
 up = jl("campaign/storage/uploaded.jsonl")
-print(f"R2: {len(up)} objects, {sum(u['bytes'] for u in up) / 1e9:.2f} GB uploaded; last sync log: ", end="")
+gb = sum(u["bytes"] for u in up) / 1e9
+print(f"R2: {len(up)} objects, {gb:.2f} GB uploaded; last sync log: ", end="")
 try:
     print(open("campaign/logs/r2sync.log").read().strip().splitlines()[-1][-80:])
 except (OSError, IndexError):
