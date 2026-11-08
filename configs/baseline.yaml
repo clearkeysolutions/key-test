@@ -1,0 +1,30 @@
+# Baseline lock inputs (SPEC §3). BASELINE_LOCKED refuses to proceed unless the
+# checkout at `ckey.path` is exactly `ckey.commit` with no local changes.
+spec_id: CKTEST-RH-001
+spec_revision: "1.0"
+
+ckey:
+  repository: https://github.com/clearkeysolutions/ckey
+  commit: ede38f57aa1a20c456b1858f4fccd919e98ef269   # 0.1.0-build.85, inventoried 2026-11-07
+  software_version: 0.1.0-build.85
+  abi_version: 4
+  path: third_party/ckey                            # cloned by scripts/preflight.sh
+  # Specification documents whose SHA-256 is recorded at lock time.
+  spec_files:
+    - spec/CKey-Format-v0.27.0.md   # Profile 0 (scalable, standard layout)
+    - spec/CKey-Format-v0.28.0.md   # Profile 0.1 (print layout), draft
+    - spec/CKey-Format-v0.14.0.md   # Profile 1 (locator)
+    - spec/CKey-Format-v0.25.0.md   # Profile 2 (text)
+    - spec/CKey-Format-v0.26.0.md   # Profile 3 (extended)
+    - spec/CKey-Printing.md
+  # Reader loop the adapter ports (runners/native/scanner_adapter.h).
+  reader_reference:
+    - sdk/swift/Sources/CKeyScanKit/CKeyDecoder.swift
+    - ios/CKeyReader/CameraScanner.swift
+
+# Profiles under test, as the production code names them (see CONTEXT.md).
+profiles:
+  P0: {name: scalable, formats: ["0.27 (standard)", "0.28 (print, 'P0.1')"], decoder: ckey_decode_scalable_gray8}
+  P1: {name: locator, formats: ["0.14"], payload_bytes: 16, fec: "RS(77,26)", decoder: ckey_decode_gray8}
+  P2: {name: text, formats: ["0.25"], payload_bytes: "1-200", fec: "RS(255,210)", decoder: ckey_decode_text_gray8}
+  P3: {name: extended, formats: ["0.26"], payload_bytes: "1-2048", fec: "10 x RS(255,k), 7 tiers", decoder: ckey_decode_extended_gray8}

@@ -1,0 +1,70 @@
+# Pre-registered structured campaign design (SPEC §4). Locked (SHA-256 recorded)
+# at BASELINE_LOCKED; any later edit invalidates the lock.
+version: strata-v1
+master_seed: "CKTEST-RH-001/structured/v1"   # public by design: the structured million is not a holdout
+cases_per_stratum: 50000
+profiles: [P1, P2, P3, P0]                   # 12,500 each per stratum
+severity_bins: 5                             # 2,500 cases per (stratum, profile, bin)
+per_profile_bin:                             # allocation inside each (stratum, profile, bin) cell
+  negative: 250                              # 10% hard negatives / near misses (reported separately)
+  sweep: 1100                                # 44% controlled single-factor sweep (>= 40% required)
+  joint: 1150                                # randomized valid joint conditions
+payload_family_size: 5                       # consecutive cases sharing one payload (clustering unit)
+shard_size: 1000
+
+# Declared minimum module resolution (px per Cartesian module pitch) for the
+# clean exact round-trip gate. Sources: docs/OVERVIEW.md and spec 0.27 in the
+# pinned ckey commit. P1 is not stated there; 6 px/module is an assumption the
+# owner must confirm (CONTEXT.md, open issue OI-3).
+declared_min_ppm: {P0: 6.0, P1: 6.0, P2: 5.0, P3: 5.5}
+
+# Module geometry used to convert physical size <-> px per module.
+module_geometry:
+  canvas_units: {P0: 31, P1: 31, P2: 31, P3: 124}
+  field_units: {P0: 29, P1: 29, P2: 29, P3: 116}
+  modules_across: {P1: 29, P2: 58, P3: 232}   # P0: ckey_scalable_modules_across(version)
+  ring_slots: {P1: 72, P2: 144, P3: 288}      # P0 standard ~72*modules/29; print uses equal-arc slots
+  ray_pitch_modules: {P0_standard: 0.66, P0_print: 0.99, P1: 0.66, P2: 0.66, P3: 0.57}
+
+# Physical recoverability labels are computed by the worker (recov-v1); this
+# block mirrors runners/native/worker.cpp config_json() and preflight checks it.
+recoverability:
+  version: recov-v1
+  unrecoverable: {ppm_min_lt: 1.0, dprime_lt: 1.0, mtf_contrast_lt: 0.01, byte_err_gt: "2*ecc", cropped: true}
+  marginal: {ppm_min_lt: 2.0, dprime_lt: 3.0, byte_err_gt: "ecc"}
+
+negatives:
+  # kind: expected outcome. Applicability per profile is enforced by the generator.
+  kinds:
+    random_codeword: REJECT
+    heavy_corruption: NO_WRONG
+    t_plus_one: NO_WRONG        # P1, P2 only
+    crc_forge: NO_WRONG         # P1, P2 only
+    splice: NO_WRONG
+    mirror: NO_WRONG
+    foreign_grid: REJECT
+    blank: REJECT
+
+# Primary factor and its five fixed severity bins per stratum. Units are
+# chosen to be physical or module-relative, never raw "blur sigma in px".
+strata:
+  S01: {name: "Clean, ideal reference and exact round-trip", factor: ppm_rel, units: "fraction of [declared_min, feasible_max] (log)", bins: [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]]}
+  S02: {name: "Payload length, density, pathological bit patterns", factor: fill, units: "payload bytes / capacity", bins: [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]]}
+  S03: {name: "Symbol scale, downsampling, subpixel phase", factor: ppm, units: "px per module", bins: [[5.2, 7.5], [3.8, 5.2], [2.8, 3.8], [2.0, 2.8], [1.2, 2.0]]}
+  S04: {name: "Perspective, skew, nonplanar warping", factor: tilt_deg, units: "degrees off-axis", bins: [[0, 15], [15, 30], [30, 45], [45, 60], [60, 72]]}
+  S05: {name: "Rotation, mirror/reflection rejection, finder orientation", factor: roll_deg, units: "degrees in-plane", bins: [[0, 72], [72, 144], [144, 216], [216, 288], [288, 360]]}
+  S06: {name: "Gaussian/optical defocus and lens PSF", factor: blur_modules, units: "PSF sigma / module pitch", bins: [[0.0, 0.15], [0.15, 0.3], [0.3, 0.45], [0.45, 0.65], [0.65, 0.9]]}
+  S07: {name: "Directional and rolling-shutter motion blur", factor: motion_modules, units: "motion length / module pitch", bins: [[0.0, 0.5], [0.5, 1.0], [1.0, 1.5], [1.5, 2.5], [2.5, 4.0]]}
+  S08: {name: "Low light, photon/read noise, high ISO", factor: white_e, units: "electrons at white (log-uniform)", bins: [[1500, 6000], [500, 1500], [150, 500], [50, 150], [12, 50]]}
+  S09: {name: "Contrast, uneven illumination, shadows", factor: contrast, units: "Michelson contrast of marks", bins: [[0.6, 0.9], [0.4, 0.6], [0.25, 0.4], [0.15, 0.25], [0.07, 0.15]]}
+  S10: {name: "Specular glare, saturation, highlights", factor: glare_coverage, units: "fraction of symbol under glare", bins: [[0.0, 0.05], [0.05, 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 0.45]]}
+  S11: {name: "Occlusion, tears, scratches, missing regions", factor: occl_frac, units: "fraction of field", bins: [[0.0, 0.05], [0.05, 0.1], [0.1, 0.15], [0.15, 0.25], [0.25, 0.4]]}
+  S12: {name: "Print dot gain, ink bleed, halftone, paper", factor: dot_gain_modules, units: "ink spread / module pitch", bins: [[0.0, 0.05], [0.05, 0.1], [0.1, 0.15], [0.15, 0.25], [0.25, 0.35]]}
+  S13: {name: "Screen pixels, RGB subpixels, moire, refresh artifacts", factor: screen_px_per_module, units: "display pixels per module", bins: [[8, 12], [5, 8], [3.5, 5], [2.5, 3.5], [1.6, 2.5]]}
+  S14: {name: "Compression, sharpening, denoising, ISP artifacts", factor: jpeg_q, units: "JPEG quality", bins: [[90, 100], [70, 90], [50, 70], [30, 50], [10, 30]]}
+  S15: {name: "Color foreground/background, gamma, transparency", factor: lum_contrast_ratio, units: "WCAG luminance ratio", bins: [[7, 21], [4.5, 7], [3, 4.5], [2, 3], [1.4, 2]]}
+  S16: {name: "Clutter, distractors, partial crops, multiple codes", factor: clutter_class, units: "class index", bins: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]}
+  S17: {name: "Ring matrix dot/arc and radial sampling stress", factor: rot_blur_slots, units: "rotation during exposure / ring slot angle", bins: [[0.0, 0.25], [0.25, 0.5], [0.5, 0.75], [0.75, 1.0], [1.0, 1.5]]}
+  S18: {name: "Ray matrix length/weight, angular aliasing", factor: px_per_ray_slot, units: "px per dial ray slot", bins: [[3.5, 6], [2.5, 3.5], [1.8, 2.5], [1.3, 1.8], [0.9, 1.3]]}
+  S19: {name: "Grid matrix, finder-safe-zone and corner localization", factor: finder_stress, units: "class index", bins: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]]}
+  S20: {name: "Combined realistic conditions and temporal frame sequences", factor: realism, units: "joint severity multiplier", bins: [[0.5, 0.75], [0.75, 1.0], [1.0, 1.25], [1.25, 1.5], [1.5, 1.8]]}

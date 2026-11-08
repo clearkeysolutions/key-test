@@ -100,15 +100,21 @@ inline Image sensor_capture(const Image &radiance, const SensorModel &m, Rng &rn
         const float e = expose_pixel(static_cast<float>(r * k) * gain[static_cast<size_t>(y) * W + x], static_cast<float>(m.read_noise_e), static_cast<float>(m.full_well_e), rng);
         mosaic.at(x, y) = static_cast<float>(std::round(e / m.full_well_e * levels) / levels);
     }
+    // Bilinear demosaic: the photosite's own channel, plus the mean of the
+    // nearest same-channel neighbours for the other two (classic RGGB rules).
+    const auto M = [&](int x, int y) { return mosaic.at(std::clamp(x, 0, W - 1), std::clamp(y, 0, H - 1)); };
     for (int y = 0; y < H; ++y) for (int x = 0; x < W; ++x) {
-        float acc[3] = {0, 0, 0}; float wsum[3] = {0, 0, 0};
-        for (int dy = -1; dy <= 1; ++dy) for (int dx = -1; dx <= 1; ++dx) {
-            const int xx = std::clamp(x + dx, 0, W - 1), yy = std::clamp(y + dy, 0, H - 1);
-            const int ch = (yy & 1) == 0 ? ((xx & 1) == 0 ? 0 : 1) : ((xx & 1) == 0 ? 1 : 2);
-            const float w = (dx == 0 && dy == 0) ? 4.f : (dx == 0 || dy == 0) ? 2.f : 1.f;
-            acc[ch] += w * mosaic.at(xx, yy); wsum[ch] += w;
-        }
-        for (int c = 0; c < 3; ++c) out.c[c].at(x, y) = wsum[c] > 0 ? acc[c] / wsum[c] : 0.f;
+        const float c0 = M(x, y);
+        const float cross = 0.25f * (M(x - 1, y) + M(x + 1, y) + M(x, y - 1) + M(x, y + 1));
+        const float diag = 0.25f * (M(x - 1, y - 1) + M(x + 1, y - 1) + M(x - 1, y + 1) + M(x + 1, y + 1));
+        const float horiz = 0.5f * (M(x - 1, y) + M(x + 1, y)), vert = 0.5f * (M(x, y - 1) + M(x, y + 1));
+        float r, g, b;
+        const bool ey = (y & 1) == 0, ex = (x & 1) == 0;
+        if (ey && ex) { r = c0; g = cross; b = diag; }          // R site
+        else if (!ey && !ex) { b = c0; g = cross; r = diag; }   // B site
+        else if (ey) { g = c0; r = horiz; b = vert; }           // G on an R row
+        else { g = c0; b = horiz; r = vert; }                   // G on a B row
+        out.c[0].at(x, y) = r; out.c[1].at(x, y) = g; out.c[2].at(x, y) = b;
     }
     return out;
 }
@@ -150,17 +156,17 @@ inline void jpeg_like(Plane &y, int quality) {
     double q[64]; for (int i = 0; i < 64; ++i) q[i] = std::clamp((base[i] * scale + 50) / 100, 1, 255);
     double cosv[8][8]; for (int x = 0; x < 8; ++x) for (int u = 0; u < 8; ++u) cosv[x][u] = std::cos((2 * x + 1) * u * 3.14159265358979323846 / 16);
     const auto c = [](int u) { return u == 0 ? std::sqrt(0.125) : 0.5; };
+    // Orthonormal DCT-II basis: B[u][x] = c(u) cos((2x+1) u pi / 16).
+    float B[8][8];
+    for (int u = 0; u < 8; ++u) for (int x = 0; x < 8; ++x) B[u][x] = static_cast<float>(c(u) * cosv[x][u]);
+    float qf[64]; for (int i = 0; i < 64; ++i) qf[i] = static_cast<float>(q[i]);
     for (int by = 0; by + 8 <= y.h; by += 8) for (int bx = 0; bx + 8 <= y.w; bx += 8) {
-        double blk[8][8], F[8][8];
-        for (int j = 0; j < 8; ++j) for (int i = 0; i < 8; ++i) blk[j][i] = y.at(bx + i, by + j) * 255.0 - 128;
-        for (int v = 0; v < 8; ++v) for (int u = 0; u < 8; ++u) {
-            double s = 0; for (int j = 0; j < 8; ++j) for (int i = 0; i < 8; ++i) s += blk[j][i] * cosv[i][u] * cosv[j][v];
-            F[v][u] = std::round(c(u) * c(v) * s / q[v * 8 + u]) * q[v * 8 + u];
-        }
-        for (int j = 0; j < 8; ++j) for (int i = 0; i < 8; ++i) {
-            double s = 0; for (int v = 0; v < 8; ++v) for (int u = 0; u < 8; ++u) s += c(u) * c(v) * F[v][u] * cosv[i][u] * cosv[j][v];
-            y.at(bx + i, by + j) = static_cast<float>(std::clamp((s + 128) / 255.0, 0.0, 1.0));
-        }
+        float blk[8][8], tmp[8][8], F[8][8];
+        for (int j = 0; j < 8; ++j) for (int i = 0; i < 8; ++i) blk[j][i] = y.at(bx + i, by + j) * 255.f - 128.f;
+        for (int j = 0; j < 8; ++j) for (int u = 0; u < 8; ++u) { float a = 0; for (int i = 0; i < 8; ++i) a += B[u][i] * blk[j][i]; tmp[j][u] = a; }   // rows
+        for (int v = 0; v < 8; ++v) for (int u = 0; u < 8; ++u) { float a = 0; for (int j = 0; j < 8; ++j) a += B[v][j] * tmp[j][u]; F[v][u] = std::nearbyint(a / qf[v * 8 + u]) * qf[v * 8 + u]; }
+        for (int v = 0; v < 8; ++v) for (int i = 0; i < 8; ++i) { float a = 0; for (int u = 0; u < 8; ++u) a += B[u][i] * F[v][u]; tmp[v][i] = a; }     // inverse rows
+        for (int j = 0; j < 8; ++j) for (int i = 0; i < 8; ++i) { float a = 0; for (int v = 0; v < 8; ++v) a += B[v][j] * tmp[v][i]; y.at(bx + i, by + j) = std::clamp((a + 128.f) / 255.f, 0.f, 1.f); }
     }
 }
 
@@ -185,10 +191,7 @@ inline Plane area_rescale(const Plane &p, double f) {
 
 // Full ISP to an 8-bit luma frame.
 inline std::vector<uint8_t> isp_to_luma8(Image img, const IspModel &m, double digital_gain, int &out_w, int &out_h) {
-    for (auto &p : img.c) {
-        for (auto &v : p.v) v = static_cast<float>(v * digital_gain);
-        denoise_plane(p, m.denoise);
-    }
+    for (auto &p : img.c) for (auto &v : p.v) v = static_cast<float>(v * digital_gain);
     Plane y(img.w(), img.h());
     for (size_t i = 0; i < y.v.size(); ++i) {
         if (img.channels() == 3) {
@@ -196,6 +199,8 @@ inline std::vector<uint8_t> isp_to_luma8(Image img, const IspModel &m, double di
             y.v[i] = luma709(r, g, b);  // luma from gamma-encoded R'G'B' (Y'), as video pipelines do
         } else y.v[i] = tone_curve(img.c[0].v[i], m.tone);
     }
+    // Luma noise reduction on the delivered Y' plane (as YUV-domain ISP NR does).
+    denoise_plane(y, m.denoise);
     if (m.sharpen > 0) {
         Plane bl = y; gaussian_blur(bl, m.sharpen_sigma);
         for (size_t i = 0; i < y.v.size(); ++i) y.v[i] = std::clamp(y.v[i] + static_cast<float>(m.sharpen) * (y.v[i] - bl.v[i]), 0.f, 1.f);

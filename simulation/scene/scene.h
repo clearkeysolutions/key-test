@@ -126,9 +126,16 @@ struct Lighting {
     std::vector<Glare> glare;     // specular highlights (additive radiance, relative to white)
     double veil = 0;              // uniform additive veiling glare
     double half_mm = 20;
-    float illum(double u, double v) const {
+    double gx = 0, gy = 0;   // precomputed gradient direction / half_mm
+    bool flat = true;        // no gradient, shadows, glare or veil: illum = 1, specular = 0
+    void prepare() {
         const double a = gradient_angle * kPiD / 180;
-        double f = 1 + gradient * (u * std::cos(a) + v * std::sin(a)) / half_mm;
+        gx = gradient * std::cos(a) / half_mm; gy = gradient * std::sin(a) / half_mm;
+        flat = gradient == 0 && shadows.empty() && glare.empty() && veil == 0;
+    }
+    float illum(double u, double v) const {
+        if (flat) return 1.f;
+        double f = 1 + u * gx + v * gy;
         for (const auto &s : shadows) {
             const double d = (u * s.nx + v * s.ny - s.offset) / std::max(1e-3, s.softness);
             f *= 1 - s.depth / (1 + std::exp(-d));
@@ -136,6 +143,7 @@ struct Lighting {
         return static_cast<float>(std::max(0.02, f));
     }
     float specular(double u, double v) const {
+        if (flat) return 0.f;
         double s = veil;
         for (const auto &g : glare) { const double d2 = ((u - g.u) * (u - g.u) + (v - g.v) * (v - g.v)) / (g.radius * g.radius); if (d2 < 9) s += g.peak * std::exp(-0.5 * d2); }
         return static_cast<float>(s);

@@ -42,13 +42,15 @@ int selftest() {
     }
     // Camera round trip.
     {
-        Camera cam; cam.K.k1 = -0.08; cam.K.k2 = 0.01; cam.S.bend_radius = 60; cam.S.bend_axis = 30;
-        Pose p; p.roll = 23; p.yaw = 31; p.pitch = -17; p.tz = 180; p.tx = 12; p.ty = -9;
         double worst = 0;
-        for (double u = -12; u <= 12; u += 4) for (double v = -12; v <= 12; v += 4) {
-            double x, y, uu, vv; cam.project(p, u, v, x, y); cam.unproject(p, x, y, uu, vv); worst = std::max(worst, std::hypot(uu - u, vv - v));
+        for (double bend : {0.0, 60.0, -80.0}) {
+            Camera cam; cam.K.k1 = -0.08; cam.K.k2 = 0.01; cam.S.bend_radius = bend; cam.S.bend_axis = 30; cam.prepare(); cam.build_undistort_grid();
+            Pose p; p.roll = 23; p.yaw = 31; p.pitch = -17; p.tz = 180; p.tx = 12; p.ty = -9;
+            for (double u = -12; u <= 12; u += 4) for (double v = -12; v <= 12; v += 4) {
+                double x, y, uu = 1e9, vv = 1e9; cam.project(p, u, v, x, y); cam.unproject(p, x, y, uu, vv); worst = std::max(worst, std::hypot(uu - u, vv - v));
+            }
         }
-        check(worst < 1e-3, "camera: project/unproject round trip with distortion and bend (max err " + std::to_string(worst) + " mm)");
+        check(worst < 2e-3, "camera: project/unproject round trip, planar/convex/concave, with distortion LUT (max err " + std::to_string(worst) + " mm)");
     }
     Scanner scanner; Simulator sim;
     for (const char *prof : {"P0", "P1", "P2", "P3"}) {

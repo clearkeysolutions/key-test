@@ -26,6 +26,10 @@
 
 #include <chrono>
 #include <cmath>
+#include <map>
+#include <cstdio>
+#include <cstdlib>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -84,41 +88,46 @@ struct Instance {
 };
 
 // Coverage over the canvas at n x n, with splice composition.
-inline Plane coverage_for(const SymbolArt &art, int n, int ss_override = 0) {
-    if (art.blank) return Plane(n, n, 0.f);
+inline std::shared_ptr<const Plane> coverage_for(const SymbolArt &art, int n, int ss_override = 0) {
+    if (art.blank) return std::make_shared<const Plane>(n, n, 0.f);
     // Coverage is cached per (symbol, size): video frames reuse the same texture.
     // Keyed by content (never by address: a later case's symbol may reuse it).
-    struct Entry { uint64_t h; int n, ss; double splice; Plane p; };
+    struct Entry { uint64_t h; int n, ss; double splice; bool indep; std::shared_ptr<const Plane> p; };
     static std::vector<Entry> cache;
-    const int ss = ss_override ? ss_override : n <= 768 ? 4 : n <= 1536 ? 3 : 2;
+    const int ss = ss_override ? ss_override : n <= 1024 ? 3 : 2;
     const uint64_t h = fnv1a64(art.svg) ^ (fnv1a64(art.svg_b) * 0x9E3779B97F4A7C15ull);
-    for (const auto &e : cache) if (e.h == h && e.n == n && e.ss == ss && e.splice == art.splice) return e.p;
-    Plane a = raster_reference(art.svg, n, ss);
+    for (const auto &e : cache) if (e.h == h && e.n == n && e.ss == ss && e.splice == art.splice && e.indep == art.ckey_raster) return e.p;
+    const auto rast = [&](const std::string &svg) { return art.ckey_raster ? raster_reference(svg, n, ss) : raster_independent(svg, n, ss); };
+    Plane a = rast(art.svg);
     if (!art.svg_b.empty()) {
-        const Plane b = raster_reference(art.svg_b, n, ss);
+        const Plane b = rast(art.svg_b);
         const int split = static_cast<int>(std::lround(art.splice * n));
         for (int y = 0; y < n; ++y) for (int x = n - split; x < n; ++x) a.at(x, y) = b.at(x, y);
     }
+    auto shared = std::make_shared<const Plane>(std::move(a));
     if (cache.size() >= 2) cache.erase(cache.begin());
-    cache.push_back({h, n, ss, art.splice, a});
-    return a;
+    cache.push_back({h, n, ss, art.splice, art.ckey_raster, shared});
+    return shared;
 }
 
 inline Image paint_texture(const Plane &cov, const CaseSpec &c, int channels, const float fg[3], const float bg[3], const float under[3], double canvas_mm) {
     Image t(channels, cov.w, cov.h);
     const double period = canvas_mm / 7;
-    for (int y = 0; y < cov.h; ++y) for (int x = 0; x < cov.w; ++x) {
-        const float k = cov.at(x, y);
-        // Transparent-background substrate pattern (wood/fabric-like stripes).
-        const float pat = static_cast<float>(1 + 0.25 * std::sin(2 * kPiD * (x + 0.3 * y) / cov.w * canvas_mm / period));
-        for (int ch = 0; ch < channels; ++ch) {
-            const int i = channels == 3 ? ch : 1;
-            const float f = channels == 3 ? fg[i] : lin_luma(fg), b0 = channels == 3 ? bg[i] : lin_luma(bg), u = (channels == 3 ? under[i] : lin_luma(under)) * pat;
-            const float b = static_cast<float>(c.bg_alpha * b0 + (1 - c.bg_alpha) * u);
-            float v;
-            if (c.mix_srgb) v = srgb_decode_fast(k * linear_to_srgb(f) + (1 - k) * linear_to_srgb(b));
-            else v = k * f + (1 - k) * b;
-            t.c[ch].at(x, y) = v;
+    for (int ch = 0; ch < channels; ++ch) {
+        const int i = channels == 3 ? ch : 1;
+        const float f = channels == 3 ? fg[i] : lin_luma(fg), b0 = channels == 3 ? bg[i] : lin_luma(bg), u0 = channels == 3 ? under[i] : lin_luma(under);
+        const bool opaque = c.bg_alpha >= 1;
+        const float fs = linear_to_srgb(f), bs_opaque = linear_to_srgb(b0);
+        Plane &out = t.c[ch];
+        for (int y = 0; y < cov.h; ++y) for (int x = 0; x < cov.w; ++x) {
+            const float k = cov.at(x, y);
+            float bs = bs_opaque, b = b0;
+            if (!opaque) {  // transparent background over a striped (wood/fabric-like) surface
+                const float pat = static_cast<float>(1 + 0.25 * std::sin(2 * kPiD * (x + 0.3 * y) / cov.w * canvas_mm / period));
+                b = static_cast<float>(c.bg_alpha * b0 + (1 - c.bg_alpha) * u0 * pat);
+                bs = linear_to_srgb(b);
+            }
+            out.at(x, y) = c.mix_srgb ? srgb_decode_fast(k * fs + (1 - k) * bs) : k * f + (1 - k) * b;
         }
     }
     return t;
@@ -189,8 +198,8 @@ public:
     // Disagreement between the reference and independent rasterizers (and,
     // for Profile 0, the production native raster) on the clean symbol.
     static double renderer_crosscheck(const SymbolArt &art) {
-        const int n = 512;
-        const Plane a = raster_reference(art.svg, n, 4), b = raster_independent(art.svg, n, 4);
+        const int n = art.profile == 3 ? 768 : 384;
+        const Plane a = raster_reference(art.svg, n, 3), b = raster_independent(art.svg, n, 3);
         double worst = raster_disagreement(a, b);
         if (art.has_p0 && art.svg_b.empty()) {
             ckey_raster_options o; ckey_raster_options_default(&o);
@@ -222,7 +231,7 @@ private:
         Frame f; f.w = c.frame_w; f.h = c.frame_h;
         const double ppm = c.ideal_ppm > 0 ? c.ideal_ppm : 8;
         const int n = std::max(16, static_cast<int>(std::lround(ppm * art.modules * art.canvas_units / art.field_units)));
-        Plane cov = coverage_for(art, n);
+        const Plane &cov = *coverage_for(art, n);
         const int rot = ((static_cast<int>(std::lround(c.roll / 90.0)) % 4) + 4) % 4;
         float fg[3], bg[3], sh[3]; rgb_lin(c.fg_rgb, fg); rgb_lin(c.bg_rgb, bg); rgb_lin(c.sheet_rgb, sh);
         const float fgs = linear_to_srgb(lin_luma(fg)), bgs = linear_to_srgb(lin_luma(bg)), shs = linear_to_srgb(lin_luma(sh));
@@ -258,6 +267,13 @@ private:
     }
 
     Frame physical(const CaseSpec &c0, const SymbolArt &art, const SymbolArt *second, int fi) {
+        static const bool timing = std::getenv("CKT_STAGE_TIMING") != nullptr;
+        auto tp = std::chrono::steady_clock::now();
+        const auto lap = [&](const char *what) {
+            if (!timing) return;
+            const auto now = std::chrono::steady_clock::now();
+            std::fprintf(stderr, "[stage] %-12s %8.1f ms\n", what, std::chrono::duration<double, std::milli>(now - tp).count()); tp = now;
+        };
         CaseSpec c = c0;
         Rng seq(parse_u64(c.seed), "sequence" + std::to_string(fi));
         if (c.frames > 1) perturb_frame(c, seq, fi);
@@ -270,10 +286,12 @@ private:
 
         SceneModel sm; sm.clutter = c.clutter; sm.distractors = c.distractors; sm.bg_level = c.bg_level;
         Image rad = make_background(C, W, H, sm, rbg);
+        lap("background");
 
-        Instance primary = make_instance(c, art, rtex, rlight, rdmg, f, false);
+        Instance primary = make_instance(c, art, rtex, rlight, rdmg, f, false, c0.case_id);
         Finger finger;
         primary.damage = make_damage(c, art, primary.canvas_mm, rdmg, finger);
+        lap("texture");
         Instance sec;
         if (second) {
             CaseSpec cs = c;
@@ -285,6 +303,9 @@ private:
             draw_instance(rad, sec, c, rsens);
         }
         const Rect roi = draw_instance(rad, primary, c, rsens);
+        lap("sample");
+        exposure_blur(rad, roi, primary, c);
+        lap("exp_blur");
 
         // Ground truth and finger placement need the projected field.
         double fq[8]; field_corners_mm(art, primary.canvas_mm, fq);
@@ -305,7 +326,8 @@ private:
         const double rcx = (roi.x0 + roi.x1) / 2.0 - W / 2.0, rcy = (roi.y0 + roi.y1) / 2.0 - H / 2.0;
         const double rr2 = std::min(1.0, (rcx * rcx + rcy * rcy) / (W * W / 4.0 + H * H / 4.0));
         const double lens = c.lens_sigma_px + (c.lens_sigma_edge_px - c.lens_sigma_px) * rr2;
-        const double sg = std::sqrt(lens * lens + c.defocus_gauss_px * c.defocus_gauss_px);
+        const double small_motion = c.motion_px < 1.0 ? c.motion_px * c.motion_px / 12 : 0;  // uniform-motion variance
+        const double sg = std::sqrt(lens * lens + c.defocus_gauss_px * c.defocus_gauss_px + small_motion);
         for (auto &p : rad.c) { gaussian_blur(p, sg); if (c.defocus_disc_px > 0.3) disc_blur(p, c.defocus_disc_px, broi); }
         if (C == 3 && c.ca_px > 0) chromatic(rad, c.ca_px);
         if (c.vignette > 0) {
@@ -316,6 +338,7 @@ private:
             }
         }
 
+        lap("lens");
         // Sensor + ISP.
         SensorModel sens; sens.full_well_e = c.full_well_e; sens.read_noise_e = c.read_noise_e; sens.prnu = c.prnu; sens.adc_bits = c.adc_bits;
         sens.max_signal_e = c.max_signal_e; sens.illum = c.illum; sens.ae_bias = c.ae_bias; sens.bayer = c.bayer != 0; sens.device_seed = parse_u64(c.device_seed);
@@ -326,12 +349,14 @@ private:
         isp.jpeg_quality = c.jpeg_q; isp.rescale = c.rescale; isp.video_range = c.video_range != 0;
         f.gray = isp_to_luma8(std::move(raw), isp, st.digital_gain, f.w, f.h);
         f.electrons_white = st.electrons_white; f.digital_gain = st.digital_gain;
+        lap("sensor+isp");
         const double rs = static_cast<double>(f.w) / W;
         // Continuous image coordinates -> output frame -> ckey's pixel-centre convention.
         for (double &v : f.gt) v = v * rs - 0.5;
         for (double &v : f.gt2) v = v * rs - 0.5;
 
         physics(f, c, art, primary, finger, st, rs);
+        lap("physics");
         return f;
     }
 
@@ -347,13 +372,20 @@ private:
         c.illum *= std::exp(c.exposure_drift * r.normal());
     }
 
-    Instance make_instance(const CaseSpec &c, const SymbolArt &art, Rng &rtex, Rng &rl, Rng &rd, Frame &f, bool is_second) {
+    // The surface texture is invariant across a sequence's frames (only pose,
+    // focus, exposure and motion change), so it is built once per case.
+    std::string tex_key_;
+    Image tex_cache_; Screen screen_cache_; double tex_px_cache_ = 0, dpi_cache_ = 0;
+
+    Instance make_instance(const CaseSpec &c, const SymbolArt &art, Rng &rtex, Rng &rl, Rng &rd, Frame &f, bool is_second, const std::string &cache_id = "") {
         (void)rd;
         Instance in; in.art = &art; in.mirror = art.mirror;
         in.canvas_mm = c.symbol_mm; in.sheet_half = c.symbol_mm * (0.5 + std::max(0.0, c.sheet_margin));
         rgb_lin(c.sheet_rgb, in.sheet); rgb_lin(c.sheet_rgb, in.under); in.bg_alpha = c.bg_alpha;
         in.cam.K.width = c.frame_w; in.cam.K.height = c.frame_h; in.cam.K.f = c.focal_px; in.cam.K.cx = c.frame_w / 2.0; in.cam.K.cy = c.frame_h / 2.0;
         in.cam.K.k1 = c.k1; in.cam.K.k2 = c.k2; in.cam.S.bend_radius = c.bend_radius_mm; in.cam.S.bend_axis = c.bend_axis;
+        in.cam.prepare();
+        in.cam.build_undistort_grid();
         in.pose.roll = c.roll; in.pose.yaw = c.yaw; in.pose.pitch = c.pitch; in.pose.tz = c.distance_mm;
         in.pose.tx = c.distance_mm * (c.center_x * c.frame_w - in.cam.K.cx) / c.focal_px;
         in.pose.ty = c.distance_mm * (c.center_y * c.frame_h - in.cam.K.cy) / c.focal_px;
@@ -361,12 +393,17 @@ private:
         const bool rgb = c.color_mode == "rgb" || c.substrate == "display" || c.bayer;
         const int C = rgb ? 3 : 1;
         const double cam_px = c.focal_px * c.symbol_mm / std::max(1.0, c.distance_mm);  // frontal canvas size in camera px
-        if (c.substrate == "display") {
+        const std::string key = cache_id.empty() || is_second ? "" : cache_id + "|" + std::to_string(fnv1a64(art.svg)) + "|" + c.substrate;
+        if (!key.empty() && key == tex_key_) {
+            in.display = c.substrate == "display";
+            if (in.display) in.screen = screen_cache_; else in.tex = tex_cache_;
+            f.texture_px = tex_px_cache_; f.dpi_effective = dpi_cache_;
+        } else if (c.substrate == "display") {
             in.display = true;
             DisplayModel dm; dm.ppi = c.disp_ppi; dm.fill = c.disp_fill; dm.layout = c.disp_layout; dm.brightness = c.disp_brightness;
             dm.glass_reflect = c.disp_glass; dm.refresh_amp = c.disp_refresh_amp; dm.refresh_period_rows = c.disp_refresh_period; dm.refresh_phase = rl.unit();
             const int sp = std::clamp(static_cast<int>(std::lround(c.symbol_mm / 25.4 * c.disp_ppi)), 16, 4096);
-            const Plane cov = coverage_for(art, sp);
+            const auto covp = coverage_for(art, sp); const Plane &cov = *covp;
             // Screen pixel values: the display's own renderer mixes in sRGB, then the panel emits linear light.
             in.screen.px = Image(3, sp, sp);
             for (int y = 0; y < sp; ++y) for (int x = 0; x < sp; ++x) for (int ch = 0; ch < 3; ++ch) {
@@ -383,19 +420,23 @@ private:
             const float *ink = marks_dark ? fg : bg, *paper = marks_dark ? bg : fg;
             for (int i = 0; i < 3; ++i) { pm.ink[i] = ink[i]; pm.paper[i] = paper[i]; }
             const int dev = std::clamp(static_cast<int>(std::lround(c.symbol_mm / 25.4 * c.print_dpi)), 32, 4096);
-            const int n = std::clamp(std::max(dev, static_cast<int>(3 * cam_px)), 64, 4096);
+            const int n = std::clamp(std::max(dev, static_cast<int>(2 * cam_px)), 64, 4096);
             // Binary device dots at the printer's own resolution, replicated to the texture grid.
-            const Plane devcov = coverage_for(art, dev, 2);  // thresholded to binary dots: 2x2 suffices
+            const auto devp = coverage_for(art, dev, 2); const Plane &devcov = *devp;  // thresholded to binary dots: 2x2 suffices
             Plane cov(n, n);
             for (int y = 0; y < n; ++y) for (int x = 0; x < n; ++x) cov.at(x, y) = devcov.at(std::min(dev - 1, x * dev / n), std::min(dev - 1, y * dev / n)) >= 0.5f ? 1.f : 0.f;
             double dpi_eff = 0;
             in.tex = print_texture(cov, c.symbol_mm, pm, C, rtex, dpi_eff);
             if (!is_second) { f.texture_px = n; f.dpi_effective = std::min(c.print_dpi, dev / (c.symbol_mm / 25.4)); }
         } else {
-            const int n = std::clamp(static_cast<int>(std::ceil(3 * cam_px)), 256, 4096);
-            const Plane cov = coverage_for(art, n);
-            in.tex = paint_texture(cov, c, C, fg, bg, in.under, c.symbol_mm);
+            // 2 texels per camera pixel: each camera pixel takes 2x2 bilinear samples of it.
+            const int n = std::clamp(static_cast<int>(std::ceil(2 * cam_px)), 256, 4096);
+            const auto covp = coverage_for(art, n);
+            in.tex = paint_texture(*covp, c, C, fg, bg, in.under, c.symbol_mm);
             if (!is_second) f.texture_px = n;
+        }
+        if (!key.empty() && key != tex_key_) {
+            tex_key_ = key; tex_cache_ = in.tex; screen_cache_ = in.screen; tex_px_cache_ = f.texture_px; dpi_cache_ = f.dpi_effective;
         }
         // Lighting in surface coordinates.
         in.light.half_mm = c.symbol_mm / 2; in.light.gradient = c.grad; in.light.gradient_angle = c.grad_angle;
@@ -406,6 +447,7 @@ private:
         for (int i = 0; i < c.glare_spots; ++i)
             in.light.glare.push_back({rl.uniform(-0.35, 0.35) * c.symbol_mm, rl.uniform(-0.35, 0.35) * c.symbol_mm, std::max(0.05, c.glare_radius_frac * c.symbol_mm * rl.uniform(0.7, 1.3)), c.glare_peak});
         in.light.veil = c.veil;
+        in.light.prepare();
         return in;
     }
 
@@ -451,44 +493,137 @@ private:
         if (!any) return Rect{0, 0, 0, 0};
         const double extra = c.motion_px * (1 + std::abs(c.rs_ratio)) + c.rot_blur_deg / 57.3 * std::max(x1 - x0, y1 - y0) + c.zoom_blur * std::max(x1 - x0, y1 - y0) + 4;
         Rect roi = clip_rect(Rect{static_cast<int>(x0 - extra), static_cast<int>(y0 - extra), static_cast<int>(x1 + extra) + 1, static_cast<int>(y1 + extra) + 1}, W, H);
-        // Time samples: enough that motion moves < ~0.7 px between them.
-        const double rot_px = c.rot_blur_deg / 57.3 * 0.5 * std::max(x1 - x0, y1 - y0), zoom_px = c.zoom_blur * 0.5 * std::max(x1 - x0, y1 - y0);
-        const int K = std::clamp(static_cast<int>(std::ceil(std::max({c.motion_px, rot_px, zoom_px}) / 0.7)), 1, 48);
-        const int N = std::max(std::max(1, c.samples), K);
+        // Spatial samples per pixel. Motion, rotation and zoom blur during the
+        // exposure are applied afterwards as image-space kernels (exposure_blur);
+        // the rolling shutter is exact: each row is sampled at its own readout time.
+        const int K = 1;
+        const int N = std::max(1, c.samples);
         // R2 low-discrepancy subpixel offsets, stratified times.
         std::vector<double> ox(N), oy(N), tt(N);
         const double g = 1.32471795724474602596, a1 = 1 / g, a2 = 1 / (g * g);
         for (int k = 0; k < N; ++k) { ox[k] = std::fmod(0.5 + a1 * (k + 1), 1.0); oy[k] = std::fmod(0.5 + a2 * (k + 1), 1.0); tt[k] = K > 1 ? (k + 0.5) / N - 0.5 : 0; }
         const double vx = c.motion_px * std::cos(deg2rad(c.motion_angle)) * c.distance_mm / c.focal_px;
         const double vy = c.motion_px * std::sin(deg2rad(c.motion_angle)) * c.distance_mm / c.focal_px;
-        const bool moving = K > 1 || c.rs_ratio != 0;
+        const bool moving = c.rs_ratio != 0 && (c.motion_px > 0 || c.rot_blur_deg > 0 || c.zoom_blur > 0);
         const DisplayModel *dm = in.display ? &in.screen.m : nullptr;
-        std::vector<Mat3> rots(N); std::vector<Vec3> trans(N);
         float acc[3], val[3];
         (void)rng;
-        for (int y = roi.y0; y < roi.y1; ++y) {
-            const double row_t = c.rs_ratio * ((y + 0.5) / H - 0.5);
-            if (y == roi.y0 || moving) for (int k = 0; k < N; ++k) {
-                const double t = (moving ? tt[k] : 0) + row_t;
-                Pose p = in.pose; p.tx += vx * t; p.ty += vy * t; p.roll += c.rot_blur_deg * t; p.tz *= 1 + c.zoom_blur * t;
-                rots[k] = rotation(p.roll, p.yaw, p.pitch); trans[k] = Vec3{p.tx, p.ty, p.tz};
+        // Exact unprojection at pixel corners; subsamples interpolate bilinearly
+        // inside the pixel (the projective map is smooth at sub-pixel scale).
+        // A corner that misses the surface makes the pixel fall back to exact samples.
+        const int rw = roi.x1 - roi.x0 + 1;
+        std::vector<double> cu0(rw), cv0(rw), cu1(rw), cv1(rw);
+        std::vector<uint8_t> ok0(rw), ok1(rw);
+        Mat3 R = rotation(in.pose.roll, in.pose.yaw, in.pose.pitch); Vec3 T{in.pose.tx, in.pose.ty, in.pose.tz};
+        const auto row_pose = [&](int y) {
+            if (!moving) return;
+            const double t = c.rs_ratio * ((y + 0.5) / H - 0.5);
+            Pose p = in.pose; p.tx += vx * t; p.ty += vy * t; p.roll += c.rot_blur_deg * t; p.tz *= 1 + c.zoom_blur * t;
+            R = rotation(p.roll, p.yaw, p.pitch); T = Vec3{p.tx, p.ty, p.tz};
+        };
+        const auto corners = [&](int y, std::vector<double> &U, std::vector<double> &V, std::vector<uint8_t> &O) {
+            const bool bent = in.cam.S.bend_radius != 0;
+            for (int i = 0; i < rw; ++i) {
+                // Warm start from the left neighbour (or the corner above) on bent surfaces.
+                double g[2]; const double *gp = nullptr;
+                if (bent && i > 0 && O[i - 1]) { g[0] = U[i - 1]; g[1] = V[i - 1]; gp = g; }
+                O[i] = in.cam.unproject(R, T, roi.x0 + i, y, U[i], V[i], gp);
             }
+        };
+        row_pose(roi.y0); corners(roi.y0, cu0, cv0, ok0);
+        for (int y = roi.y0; y < roi.y1; ++y) {
+            row_pose(y); corners(y + 1, cu1, cv1, ok1);
             float band = 1;
             if (dm && dm->refresh_amp > 0) band = static_cast<float>(1 - dm->refresh_amp * (0.5 + 0.5 * std::sin(2 * kPiD * (y / dm->refresh_period_rows + dm->refresh_phase))));
+            const double half_canvas = in.canvas_mm / 2;
+            const auto off_canvas = [&](double u, double v) { return std::abs(u) > half_canvas || std::abs(v) > half_canvas; };
             for (int x = roi.x0; x < roi.x1; ++x) {
+                const int i = x - roi.x0;
+                const bool interp = ok0[i] && ok0[i + 1] && ok1[i] && ok1[i + 1];
                 acc[0] = acc[1] = acc[2] = 0; int hits = 0;
-                for (int k = 0; k < N; ++k) {
+                // Pixels wholly off the printed canvas (sheet or background) are smooth: one sample suffices.
+                const bool smooth = interp && in.damage.empty() && off_canvas(cu0[i], cv0[i]) && off_canvas(cu0[i + 1], cv0[i + 1]) && off_canvas(cu1[i], cv1[i]) && off_canvas(cu1[i + 1], cv1[i + 1]) &&
+                                    ((cu0[i] > half_canvas && cu0[i + 1] > half_canvas && cu1[i] > half_canvas && cu1[i + 1] > half_canvas) ||
+                                     (cu0[i] < -half_canvas && cu0[i + 1] < -half_canvas && cu1[i] < -half_canvas && cu1[i + 1] < -half_canvas) ||
+                                     (cv0[i] > half_canvas && cv0[i + 1] > half_canvas && cv1[i] > half_canvas && cv1[i + 1] > half_canvas) ||
+                                     (cv0[i] < -half_canvas && cv0[i + 1] < -half_canvas && cv1[i] < -half_canvas && cv1[i + 1] < -half_canvas));
+                const int NN = smooth ? 1 : N;
+                for (int k = 0; k < NN; ++k) {
                     double u, v;
-                    if (!in.cam.unproject(rots[k], trans[k], x + ox[k], y + oy[k], u, v) || !shade(in, u, v, C, val, band)) {
+                    bool okk;
+                    if (interp) {
+                        const double fx = NN == 1 ? 0.5 : ox[k], fy = NN == 1 ? 0.5 : oy[k];
+                        u = (cu0[i] * (1 - fx) + cu0[i + 1] * fx) * (1 - fy) + (cu1[i] * (1 - fx) + cu1[i + 1] * fx) * fy;
+                        v = (cv0[i] * (1 - fx) + cv0[i + 1] * fx) * (1 - fy) + (cv1[i] * (1 - fx) + cv1[i + 1] * fx) * fy;
+                        okk = true;
+                    } else okk = in.cam.unproject(R, T, x + ox[k], y + oy[k], u, v);
+                    if (!okk || !shade(in, u, v, C, val, band)) {
                         for (int ch = 0; ch < C; ++ch) acc[ch] += rad.c[ch].at(x, y);
                         continue;
                     }
                     ++hits; for (int ch = 0; ch < C; ++ch) acc[ch] += val[ch];
                 }
-                if (hits) for (int ch = 0; ch < C; ++ch) rad.c[ch].at(x, y) = acc[ch] / N;
+                if (hits) for (int ch = 0; ch < C; ++ch) rad.c[ch].at(x, y) = acc[ch] / NN;
             }
+            cu0.swap(cu1); cv0.swap(cv1); ok0.swap(ok1);
         }
         return roi;
+    }
+
+    // Image motion during the exposure, as image-space kernels over the symbol's
+    // region (camera shake moves symbol and nearby background alike):
+    // translation = line kernel of motion_px; rotation = arc about the symbol
+    // centre; zoom = radial segment. Valid for the moderate perspective of
+    // hand-held capture; documented in simulation/README.md.
+    void exposure_blur(Image &rad, Rect roi, const Instance &in, const CaseSpec &c) {
+        // Linear motion below 1 px is folded into the lens Gaussian (variance L^2/12; see the lens stage).
+        const bool lin = c.motion_px >= 1.0, rot = c.rot_blur_deg > 1e-3, zoom = c.zoom_blur > 1e-5;
+        if (!lin && !rot && !zoom) return;
+        const int W = rad.w(), H = rad.h();
+        const int pad = static_cast<int>(c.motion_px) + 4;
+        roi = clip_rect(Rect{roi.x0 - pad, roi.y0 - pad, roi.x1 + pad, roi.y1 + pad}, W, H);
+        double cx, cy;
+        if (!in.cam.project(in.pose, 0, 0, cx, cy)) return;
+        const double ca = std::cos(deg2rad(c.motion_angle)), sa = std::sin(deg2rad(c.motion_angle));
+        const double th = deg2rad(c.rot_blur_deg);
+        const int C = rad.channels();
+        std::vector<Plane> src(rad.c.begin(), rad.c.end());
+        if (lin && !rot && !zoom) {
+            // Pure translation: every pixel shares one kernel; precompute its bilinear taps.
+            const int taps = std::clamp(static_cast<int>(std::ceil(c.motion_px)) + 1, 2, 64);
+            std::map<std::pair<int, int>, double> k;
+            for (int t = 0; t < taps; ++t) {
+                const double u = (t + 0.5) / taps - 0.5, ox = c.motion_px * u * ca, oy = c.motion_px * u * sa;
+                const int ix = static_cast<int>(std::floor(ox)), iy = static_cast<int>(std::floor(oy)); const double fx = ox - ix, fy = oy - iy;
+                k[{ix, iy}] += (1 - fx) * (1 - fy) / taps; k[{ix + 1, iy}] += fx * (1 - fy) / taps;
+                k[{ix, iy + 1}] += (1 - fx) * fy / taps; k[{ix + 1, iy + 1}] += fx * fy / taps;
+            }
+            std::vector<std::pair<std::pair<int, int>, float>> kv;
+            for (const auto &[o, w] : k) if (w > 1e-6) kv.push_back({o, static_cast<float>(w)});
+            for (int ch = 0; ch < C; ++ch)
+                for (int y = roi.y0; y < roi.y1; ++y) for (int x = roi.x0; x < roi.x1; ++x) {
+                    float a = 0; for (const auto &[o, w] : kv) a += w * src[ch].clamped(x + o.first, y + o.second);
+                    rad.c[ch].at(x, y) = a;
+                }
+            return;
+        }
+        for (int y = roi.y0; y < roi.y1; ++y) for (int x = roi.x0; x < roi.x1; ++x) {
+            const double px = x + 0.5, py = y + 0.5, dx = px - cx, dy = py - cy, rr = std::hypot(dx, dy);
+            // Per-pixel blur path length decides the tap count (about one tap per pixel of path).
+            const double len = (lin ? c.motion_px : 0) + (rot ? rr * th : 0) + (zoom ? rr * c.zoom_blur : 0);
+            const int taps = std::clamp(static_cast<int>(std::ceil(len)) + 1, 1, 64);
+            if (taps <= 1) continue;
+            double acc[3] = {0, 0, 0};
+            for (int t = 0; t < taps; ++t) {
+                const double u = (t + 0.5) / taps - 0.5;
+                double qx = dx, qy = dy;
+                if (rot) { const double a = th * u, cs = std::cos(a), sn = std::sin(a); const double nx = qx * cs - qy * sn, ny = qx * sn + qy * cs; qx = nx; qy = ny; }
+                if (zoom) { qx *= 1 + c.zoom_blur * u; qy *= 1 + c.zoom_blur * u; }
+                qx += cx + (lin ? c.motion_px * u * ca : 0); qy += cy + (lin ? c.motion_px * u * sa : 0);
+                for (int ch = 0; ch < C; ++ch) acc[ch] += src[ch].bilinear(qx, qy);
+            }
+            for (int ch = 0; ch < C; ++ch) rad.c[ch].at(x, y) = static_cast<float>(acc[ch] / taps);
+        }
     }
 
     bool project_quad(const Instance &in, const double mm[8], double out[8]) const {

@@ -8,6 +8,8 @@
 
 #include <array>
 #include <cmath>
+#include <utility>
+#include <vector>
 
 namespace ckt {
 
@@ -49,6 +51,7 @@ struct Pose {
 struct Surface {
     double bend_radius = 0;  // mm; 0 = planar. Positive bulges toward the camera.
     double bend_axis = 0;    // degrees, direction of the bend's straight generator in surface coords
+    double ca = 1, sa = 0;   // cached cos/sin of bend_axis (Camera::prepare)
 };
 
 class Camera {
@@ -57,9 +60,11 @@ public:
     Surface S;
 
     // Surface point (u,v) mm -> 3D point in the surface's local frame.
+    void prepare() { S.ca = std::cos(deg2rad(S.bend_axis)); S.sa = std::sin(deg2rad(S.bend_axis)); }
+
     Vec3 surface_local(double u, double v) const {
         if (S.bend_radius == 0) return {u, v, 0};
-        const double ca = std::cos(deg2rad(S.bend_axis)), sa = std::sin(deg2rad(S.bend_axis));
+        const double ca = S.ca, sa = S.sa;
         // along: the straight generator direction; across: the curved direction.
         // Positive radius: convex toward the camera (edges recede, +z).
         const double across = -u * sa + v * ca, along = u * ca + v * sa;
@@ -84,7 +89,8 @@ public:
     bool unproject(const Pose &p, double px, double py, double &u, double &v) const {
         return unproject(rotation(p.roll, p.yaw, p.pitch), Vec3{p.tx, p.ty, p.tz}, px, py, u, v);
     }
-    bool unproject(const Mat3 &R, const Vec3 &T, double px, double py, double &u, double &v) const {
+    // `guess` (optional) warm-starts the bent-surface Newton solve, e.g. from a neighbouring pixel.
+    bool unproject(const Mat3 &R, const Vec3 &T, double px, double py, double &u, double &v, const double *guess = nullptr) const {
         double xn = (px - K.cx) / K.f, yn = (py - K.cy) / K.f;
         undistort(xn, yn);
         const Vec3 ray{xn, yn, 1};
@@ -96,18 +102,29 @@ public:
         const Vec3 local = R.tmul(t * ray - T);
         u = local.x; v = local.y;
         if (S.bend_radius == 0) return true;
-        // Newton refinement on the bent surface: solve proj(S(u,v)) = (xn,yn).
-        for (int it = 0; it < 6; ++it) {
-            double fx, fy, ax, ay, bx, by;
-            if (!proj_norm(R, T, u, v, fx, fy) || !proj_norm(R, T, u + 1e-3, v, ax, ay) || !proj_norm(R, T, u, v + 1e-3, bx, by)) return false;
-            const double j00 = (ax - fx) / 1e-3, j10 = (ay - fy) / 1e-3, j01 = (bx - fx) / 1e-3, j11 = (by - fy) / 1e-3;
-            const double det = j00 * j11 - j01 * j10;
-            if (std::abs(det) < 1e-14) return false;
-            const double ex = fx - xn, ey = fy - yn;
-            const double du = (j11 * ex - j01 * ey) / det, dv = (-j10 * ex + j00 * ey) / det;
-            u -= du; v -= dv;
-            if (std::abs(du) + std::abs(dv) < 1e-6) break;
-        }
+        (void)guess;
+        // Closed-form ray / cylinder intersection in the surface's local frame.
+        // The bent surface is the cylinder of radius |R| whose axis passes through
+        // (0,0,R) along the generator g; S(theta) - A = along*g + R sin(theta) n - R cos(theta) e_z.
+        const double Rb = S.bend_radius;
+        const Vec3 g{S.ca, S.sa, 0}, nrm{-S.sa, S.ca, 0};
+        const Vec3 O = R.tmul(Vec3{-T.x, -T.y, -T.z}), D = R.tmul(ray);
+        const Vec3 o = O - Vec3{0, 0, Rb};
+        const Vec3 op = o - dot(o, g) * g, dp = D - dot(D, g) * g;
+        const double qa = dot(dp, dp), qb = dot(op, dp), qc = dot(op, op) - Rb * Rb;
+        const double disc = qb * qb - qa * qc;
+        if (qa < 1e-18 || disc < 0) return false;
+        const double sq = std::sqrt(disc);
+        // Convex (R > 0): the near intersection; concave (R < 0): the far one.
+        const double tt = Rb > 0 ? (-qb - sq) / qa : (-qb + sq) / qa;
+        if (tt <= 0) return false;
+        const Vec3 w = o + tt * D;
+        const double along = dot(w, g);
+        const Vec3 wp = w - along * g;
+        const double theta = std::atan2(dot(wp, nrm) / Rb, -wp.z / Rb);
+        const double across = Rb * theta;
+        u = along * S.ca - across * S.sa;
+        v = along * S.sa + across * S.ca;
         return true;
     }
 
@@ -117,11 +134,39 @@ public:
     }
     void undistort(double &x, double &y) const {
         if (K.k1 == 0 && K.k2 == 0) return;
+        if (!grid_.empty()) {  // normalized -> pixel -> grid cell
+            const double gx = (x * K.f + K.cx) / kGrid, gy = (y * K.f + K.cy) / kGrid;
+            if (gx >= 0 && gy >= 0 && gx < gw_ - 1 && gy < gh_ - 1) {
+                const int ix = static_cast<int>(gx), iy = static_cast<int>(gy); const double fx = gx - ix, fy = gy - iy;
+                const auto &a = grid_[static_cast<size_t>(iy) * gw_ + ix], &b = grid_[static_cast<size_t>(iy) * gw_ + ix + 1];
+                const auto &c = grid_[static_cast<size_t>(iy + 1) * gw_ + ix], &d = grid_[static_cast<size_t>(iy + 1) * gw_ + ix + 1];
+                x = (a.first * (1 - fx) + b.first * fx) * (1 - fy) + (c.first * (1 - fx) + d.first * fx) * fy;
+                y = (a.second * (1 - fx) + b.second * fx) * (1 - fy) + (c.second * (1 - fx) + d.second * fx) * fy;
+                return;
+            }
+        }
+        undistort_exact(x, y);
+    }
+    // Precompute the undistortion on a kGrid-pixel lattice (call after setting K).
+    void build_undistort_grid() {
+        grid_.clear();
+        if (K.k1 == 0 && K.k2 == 0) return;
+        gw_ = K.width / kGrid + 3; gh_ = K.height / kGrid + 3;
+        grid_.resize(static_cast<size_t>(gw_) * gh_);
+        for (int j = 0; j < gh_; ++j) for (int i = 0; i < gw_; ++i) {
+            double x = (i * kGrid - K.cx) / K.f, y = (j * kGrid - K.cy) / K.f; undistort_exact(x, y);
+            grid_[static_cast<size_t>(j) * gw_ + i] = {x, y};
+        }
+    }
+    void undistort_exact(double &x, double &y) const {
         const double xd = x, yd = y;
         for (int i = 0; i < 8; ++i) { const double r2 = x * x + y * y, d = 1 + K.k1 * r2 + K.k2 * r2 * r2; x = xd / d; y = yd / d; }
     }
 
 private:
+    static constexpr int kGrid = 8;
+    std::vector<std::pair<double, double>> grid_;
+    int gw_ = 0, gh_ = 0;
     bool proj_norm(const Mat3 &R, const Vec3 &T, double u, double v, double &xn, double &yn) const {
         const Vec3 X = R * surface_local(u, v) + T;
         if (X.z <= 1e-6) return false;

@@ -112,6 +112,55 @@ inline bool hit(const Shape &s, double x, double y) {
     return false;
 }
 
+inline double seg_sdf(const Seg &g, double hw, bool round, double x, double y) {
+    if (g.arc) {
+        const double d = std::hypot(x - g.cx, y - g.cy), radial = hw - std::abs(d - g.r);
+        const double e0 = std::hypot(x - g.x0, y - g.y0), e1 = std::hypot(x - g.x1, y - g.y1);
+        if (on_arc(g, std::atan2(y - g.cy, x - g.cx))) {
+            if (round) return radial;  // caps extend the stroke beyond its ends
+            // Inside near a butt end: the end is no farther than the chord distance to the endpoint.
+            return radial > 0 ? std::min(radial, std::min(e0, e1)) : radial;
+        }
+        if (round) return hw - std::min(e0, e1);
+        return -(std::min(e0, e1) - hw);  // outside the swept range: lower bound on the distance
+    }
+    const double vx = g.x1 - g.x0, vy = g.y1 - g.y0, L = std::hypot(vx, vy);
+    if (L < 1e-12) return round ? hw - std::hypot(x - g.x0, y - g.y0) : -std::hypot(x - g.x0, y - g.y0);
+    const double ux = vx / L, uy = vy / L, along = (x - g.x0) * ux + (y - g.y0) * uy, pd = std::abs(-(x - g.x0) * uy + (y - g.y0) * ux);
+    if (round) { const double t = std::clamp(along, 0.0, L); return hw - std::hypot(x - (g.x0 + t * ux), y - (g.y0 + t * uy)); }
+    const double over = std::max({-along, along - L, 0.0});
+    if (over > 0) return -std::hypot(over, std::max(0.0, pd - hw));
+    return std::min({hw - pd, along, L - along});
+}
+
+inline double sdf(const Shape &s, double x, double y) {
+    switch (s.k) {
+    case Shape::Disc: return s.rx - std::hypot(x - s.x, y - s.y);
+    case Shape::RectFill: case Shape::RectStroke: {
+        const double cx = s.x + s.w / 2, cy = s.y + s.h / 2, r = std::min(s.rx, std::min(s.w, s.h) / 2);
+        const double qx = std::abs(x - cx) - (s.w / 2 - r), qy = std::abs(y - cy) - (s.h / 2 - r);
+        const double sd = std::hypot(std::max(qx, 0.0), std::max(qy, 0.0)) + std::min(std::max(qx, qy), 0.0) - r;
+        return s.k == Shape::RectFill ? -sd : s.hw - std::abs(sd);
+    }
+    case Shape::Poly: {
+        bool in = false; double dmin = 1e300; const size_t n = s.pts.size() / 2;
+        for (size_t i = 0, j = n - 1; i < n; j = i++) {
+            const double xi = s.pts[2 * i], yi = s.pts[2 * i + 1], xj = s.pts[2 * j], yj = s.pts[2 * j + 1];
+            if ((yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) in = !in;
+            const double vx = xj - xi, vy = yj - yi, L2 = std::max(1e-18, vx * vx + vy * vy), t = std::clamp(((x - xi) * vx + (y - yi) * vy) / L2, 0.0, 1.0);
+            dmin = std::min(dmin, std::hypot(x - (xi + t * vx), y - (yi + t * vy)));
+        }
+        return in ? dmin : -dmin;
+    }
+    case Shape::Stroke: {
+        double best = -1e300;
+        for (const auto &g : s.segs) best = std::max(best, seg_sdf(g, s.hw, s.round, x, y));
+        return best;
+    }
+    }
+    return -1e300;
+}
+
 struct Doc { double vx = 0, vy = 0, vw = 1, vh = 1; std::vector<Shape> shapes; };
 
 inline Doc parse(const std::string &text) {
@@ -184,13 +233,25 @@ inline Doc parse(const std::string &text) {
                 }
             }
             s.bx0 = s.by0 = 1e300; s.bx1 = s.by1 = -1e300;
+            const auto grow = [&](double x, double y) { s.bx0 = std::min(s.bx0, x - s.hw); s.bx1 = std::max(s.bx1, x + s.hw); s.by0 = std::min(s.by0, y - s.hw); s.by1 = std::max(s.by1, y + s.hw); };
             for (const auto &g : s.segs) {
-                const double ext = g.arc ? g.r + s.hw : s.hw;
-                const double cx = g.arc ? g.cx : 0, cy = g.arc ? g.cy : 0;
-                if (g.arc) { s.bx0 = std::min(s.bx0, cx - ext); s.bx1 = std::max(s.bx1, cx + ext); s.by0 = std::min(s.by0, cy - ext); s.by1 = std::max(s.by1, cy + ext); }
-                for (auto [x, y] : {std::pair{g.x0, g.y0}, std::pair{g.x1, g.y1}}) { s.bx0 = std::min(s.bx0, x - ext); s.bx1 = std::max(s.bx1, x + ext); s.by0 = std::min(s.by0, y - ext); s.by1 = std::max(s.by1, y + ext); }
+                grow(g.x0, g.y0); grow(g.x1, g.y1);
+                if (g.arc)  // axis-extreme points the sweep passes through
+                    for (int q = 0; q < 4; ++q) { const double a = q * M_PI / 2; if (on_arc(g, a > M_PI ? a - 2 * M_PI : a)) grow(g.cx + g.r * std::cos(a), g.cy + g.r * std::sin(a)); }
             }
         } else continue;
+        if (s.k == Shape::Stroke && s.segs.size() > 1 && !s.erase) {
+            // One shape per segment: tight boxes, and coverage is a union (bitwise OR) anyway.
+            for (const auto &g : s.segs) {
+                Shape one = s; one.segs = {g};
+                one.bx0 = one.by0 = 1e300; one.bx1 = one.by1 = -1e300;
+                const auto grow = [&](double x, double y) { one.bx0 = std::min(one.bx0, x - one.hw); one.bx1 = std::max(one.bx1, x + one.hw); one.by0 = std::min(one.by0, y - one.hw); one.by1 = std::max(one.by1, y + one.hw); };
+                grow(g.x0, g.y0); grow(g.x1, g.y1);
+                if (g.arc) for (int q = 0; q < 4; ++q) { const double a = q * M_PI / 2; if (on_arc(g, a > M_PI ? a - 2 * M_PI : a)) grow(g.cx + g.r * std::cos(a), g.cy + g.r * std::sin(a)); }
+                d.shapes.push_back(std::move(one));
+            }
+            continue;
+        }
         d.shapes.push_back(std::move(s));
     }
     return d;
@@ -213,11 +274,16 @@ inline Plane raster_independent(const std::string &svg, int n, int ss) {
     for (const auto &s : doc.shapes) {
         const int x0 = std::max(0, static_cast<int>((s.bx0 - doc.vx) / kx) - 1), x1 = std::min(n - 1, static_cast<int>((s.bx1 - doc.vx) / kx) + 1);
         const int y0 = std::max(0, static_cast<int>((s.by0 - doc.vy) / ky) - 1), y1 = std::min(n - 1, static_cast<int>((s.by1 - doc.vy) / ky) + 1);
+        const double half_diag = 0.7072 * std::hypot(kx, ky);
+        const uint64_t all = S >= 64 ? ~0ull : ((1ull << S) - 1);
         for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x) {
             uint64_t &m = mask[static_cast<size_t>(y) * n + x];
+            // Whole-pixel decision when the centre is farther than the pixel's half-diagonal from the boundary.
+            const double dc = indep::sdf(s, doc.vx + (x + 0.5) * kx, doc.vy + (y + 0.5) * ky);
+            if (dc < -half_diag) continue;
+            if (dc > half_diag) { if (s.erase) m = 0; else m = all; continue; }
             for (int k = 0; k < S && k < 64; ++k) {
-                const bool in = indep::hit(s, doc.vx + (x + ox[k]) * kx, doc.vy + (y + oy[k]) * ky);
-                if (!in) continue;
+                if (indep::sdf(s, doc.vx + (x + ox[k]) * kx, doc.vy + (y + oy[k]) * ky) < 0) continue;
                 if (s.erase) m &= ~(1ull << k); else m |= 1ull << k;
             }
         }

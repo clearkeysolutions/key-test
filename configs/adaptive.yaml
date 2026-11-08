@@ -1,0 +1,33 @@
+# Adaptive campaign rules (SPEC §7). Published (hashed into the REPORT_1M
+# freeze record) BEFORE any adaptive case is selected.
+version: adaptive-v1
+master_seed: "CKTEST-RH-001/adaptive/v1"
+total: 500000
+pools:
+  failure_targeted: 350000
+  boundary_search: 100000
+  cross_condition: 50000
+
+failure_targeted:
+  min_per_bin: 5000
+  max_bin_fraction_of_pool: 0.20       # of the 500,000 adaptive pool (100,000 cases)
+  bin: [profile, stratum, sev_bin]     # cases are generated per condition bin
+  # Weakness score per bin (exclusive of physically UNRECOVERABLE cases):
+  #   score = w_noread * no_read_rate
+  #         + w_wrong  * [wrong_payloads > 0]
+  #         + w_latency * max(0, p95_ms / latency_budget_ms - 1)
+  #         + w_geometry * min(1, median_localization_error_modules / 0.5)
+  #         + w_uncertainty * wilson_interval_width
+  #         + w_margin * mean_fec_fraction_used_among_successes
+  weights: {w_noread: 1.0, w_wrong: 100.0, w_latency: 0.2, w_geometry: 0.2, w_uncertainty: 0.5, w_margin: 0.3}
+  latency_budget_ms: 200
+  safety_critical_first: true          # bins with any wrong payload are allocated before all others
+
+boundary_search:
+  rounds: 8                            # bisection rounds on the primary factor
+  seeds_per_probe: 3                   # nearby perturbations per probe
+  minimize_tracks: 500                 # delta-debugging of secondary conditions on the worst tracks
+  extend_factor: 2.0                   # if no failure exists, search beyond the top bin by this factor
+
+cross_condition:
+  top_conditions: 10                   # worst (stratum, sev_bin) conditions recombined pairwise

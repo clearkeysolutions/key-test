@@ -1,0 +1,19 @@
+# Execution settings (not part of the scientific lock; safe to change between runs).
+version: campaign-v1
+data_dir: campaign                 # all plans, results, traces, images, DB, state (gitignored)
+workers: auto                      # auto = number of CPUs; set an integer to cap
+case_timeout_s: 180                # no progress for this long kills the worker (scaled x frames)
+max_hours: 96                      # budget ceiling; the run stops cleanly and can be resumed
+min_free_disk_gb: 15               # stop before the disk fills
+images:
+  fail_cap_per_bin: 10             # failure crops per (stratum, profile, reason)
+  wrong_payload_cap: 2000          # full frames of wrong payloads
+  success_sample_ppm: 300          # sampled success crops (per million)
+pilot:
+  cases: 10000                     # Phase 2 pilot; separate cohort, never counted
+  max_infra_failure_rate: 0.001
+  max_crosscheck_disagreement: 0.01
+holdout:
+  cases: 100000                    # 5,000 per stratum; sealed seed created at BASELINE_LOCKED
+golden:
+  per_stratum: 1000                # regression suite: first N structured cases per stratum (by plan order)

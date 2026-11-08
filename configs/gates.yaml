@@ -1,0 +1,59 @@
+# Release gates (SPEC §10). PROPOSED until an owner approves them with
+#   ./ckt lock --approver "<name>"
+# which records the approver, time and this file's SHA-256 in the immutable
+# transition log. The certification reviewer may not alter thresholds after
+# results exist: any change after BASELINE_LOCKED breaks the lock hash and
+# the gate evaluator refuses to run.
+version: gates-v1
+status: PROPOSED
+
+gates:
+  G1_no_wrong_payload:
+    description: No accepted wrong payload in the qualification campaign (structured + adaptive) or the independent holdout.
+    cohorts: [structured, adaptive, holdout]
+    max_wrong_payloads: 0
+    note: "A zero count is a release gate, not proof of impossibility. Report the exact one-sided 95% upper bound (~3/N) per profile."
+  G2_clean_round_trip:
+    description: 100% exact round trip for clean valid symbols at or above the declared minimum module resolution.
+    selector: {stratum: S01, valid_only: true, ppm_at_least_declared_min: true}
+    min_success_rate: 1.0
+  G3_normal_use:
+    description: ">= 99.9% scan success on the frozen normal-use distribution, with the Wilson 95% lower bound disclosed."
+    # Normal-use distribution: physically RECOVERABLE valid cases in severity
+    # bins 0-1 of each stratum, re-weighted by operational use weights (below),
+    # which are deliberately separate from the equal stratum allocation.
+    selector: {valid_only: true, phys_class: [RECOVERABLE], sev_bin_max: 1}
+    use_weights: {S01: 0.10, S02: 0.06, S03: 0.08, S04: 0.08, S05: 0.08, S06: 0.06, S07: 0.06, S08: 0.05, S09: 0.05, S10: 0.04,
+                  S11: 0.03, S12: 0.06, S13: 0.06, S14: 0.04, S15: 0.03, S16: 0.04, S17: 0.02, S18: 0.02, S19: 0.02, S20: 0.12}
+    min_success_rate: 0.999
+    report_lower_bound: true
+  G4_latency:
+    description: "P95 <= 200 ms single-frame decode on the reference iOS device (to be named by the owner); acquisition measured separately."
+    reference_device: null      # OPEN: owner must name the reference iOS device and OS version
+    max_p95_ms: 200
+    host_indicative_only: true  # host (server) timings are reported but cannot satisfy this gate
+  G5_no_regression:
+    description: No statistically or practically significant regression in any profile or important severity bin versus baseline.
+    noninferiority_margin_pp: 0.5      # percentage points, per (profile, stratum, sev_bin) cell with >= 400 cases
+    alpha: 0.05
+    multiplicity: holm
+  G6_memory_safety:
+    description: Zero sanitizer defects, critical parser crashes, unbounded memory growth or unbounded adversarial compute.
+    max_crashes: 0
+    max_timeouts: 0
+    max_sanitizer_findings: 0
+    max_peak_memory_mb: 512            # per single-frame decode (reader + harness heap in the worker)
+    fuzz_minutes_min: 60
+  G7_coverage:
+    description: Exactly 1,000,000 structured and >= 500,000 adaptive completed cases with verifiable manifests; holdout and real-device validation complete.
+    structured_exact: 1000000
+    adaptive_min: 500000
+    holdout_min: 100000
+    real_device_required: true
+
+labels: [UNQUALIFIED, SYNTHETICALLY_HARDENED, DEVICE_VALIDATED, CERTIFICATION_CANDIDATE, CERTIFIED_TO_CKEY_PROFILE_<version>]
+label_rules:
+  SYNTHETICALLY_HARDENED: [G1_no_wrong_payload, G2_clean_round_trip, G3_normal_use, G5_no_regression, G6_memory_safety, G7_coverage_synthetic]
+  DEVICE_VALIDATED: [SYNTHETICALLY_HARDENED, real_device_corpus]
+  CERTIFICATION_CANDIDATE: [DEVICE_VALIDATED, G4_latency]
+  CERTIFIED: "never automatic: requires a signed disposition from the independent certification reviewer (certification/qualification/README.md)"

@@ -26,7 +26,8 @@ inline constexpr const char *CASE_SCHEMA_VERSION = "ckt-case-v1";
     X(S, stratum, "")                                                                             \
     X(S, profile, "P1")             /* P0 (scalable, incl. P0.1 print layout), P1, P2, P3 */      \
     X(S, seed, "0")                 /* uint64 as decimal string */                                \
-    X(S, mode, "")                  /* sweep | joint | negative | adaptive-* | holdout */         \
+    X(S, mode, "")                  /* sweep | joint | negative */                                \
+    X(S, pool, "")                  /* adaptive sub-pool: failure_targeted | boundary_search | cross_condition */ \
     X(I, sev_bin, 0)                                                                              \
     X(S, factor, "")                /* primary factor varied by the stratum */                   \
     X(D, severity, 0)               /* primary factor value (stratum-specific units) */          \
@@ -43,6 +44,7 @@ inline constexpr const char *CASE_SCHEMA_VERSION = "ckt-case-v1";
     X(S, neg_kind, "none")          /* none random_codeword heavy_corruption t_plus_one crc_forge splice mirror foreign_grid blank */ \
     X(D, neg_param, 0)                                                                            \
     X(I, second_code, 0)            /* 1: a second, distinct valid symbol in frame */            \
+    X(S, rasterizer, "harness")     /* harness (fast, independent) | ckey (ckey's svg_raster.h) */ \
     X(S, second_profile, "")                                                                      \
     /* appearance */                                                                              \
     X(S, color_mode, "mono")        /* mono | rgb */                                             \

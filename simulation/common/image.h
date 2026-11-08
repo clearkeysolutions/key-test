@@ -22,6 +22,10 @@ struct Plane {
         x -= 0.5; y -= 0.5;
         const int x0 = static_cast<int>(std::floor(x)), y0 = static_cast<int>(std::floor(y));
         const float fx = static_cast<float>(x - x0), fy = static_cast<float>(y - y0);
+        if (x0 >= 0 && y0 >= 0 && x0 + 1 < w && y0 + 1 < h) {  // interior fast path
+            const float *r0 = &v[static_cast<size_t>(y0) * w + x0], *r1 = r0 + w;
+            return (r0[0] * (1 - fx) + r0[1] * fx) * (1 - fy) + (r1[0] * (1 - fx) + r1[1] * fx) * fy;
+        }
         const float a = clamped(x0, y0), b = clamped(x0 + 1, y0), c = clamped(x0, y0 + 1), d = clamped(x0 + 1, y0 + 1);
         return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
     }

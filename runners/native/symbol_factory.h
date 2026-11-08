@@ -11,6 +11,9 @@
 #include "simulation/case_spec.h"
 #include "simulation/common/prng.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include <cstdint>
 #include <cstdlib>
 #include <string>
@@ -102,6 +105,7 @@ struct SymbolArt {
     std::string format;                           // human-readable format descriptor
     std::string error;                            // non-empty: invalid generation
     int rs_verified = -1;                         // 1 harness RS == ckey parity, 0 mismatch, -1 not checked
+    bool ckey_raster = false;                     // texture from ckey's svg_raster.h instead of the harness rasterizer (holdout split)
     bool has_p0 = false;
     ckey_scalable_symbol p0{};
     uint32_t p0_version = 0;
@@ -134,6 +138,8 @@ inline std::string foreign_grid_svg(Rng &r) {
 
 inline SymbolArt build_symbol(const CaseSpec &c, uint64_t salt = 0) {
     SymbolArt a;
+    a.ckey_raster = c.rasterizer == "ckey";
+    if (c.rasterizer != "harness" && c.rasterizer != "ckey") { a.error = "unknown rasterizer " + c.rasterizer; return a; }
     const std::string profile = salt && !c.second_profile.empty() ? c.second_profile : c.profile;
     a.profile = profile_index(profile);
     if (a.profile < 0) { a.error = "unknown profile " + profile; return a; }
@@ -212,7 +218,7 @@ inline SymbolArt build_symbol(const CaseSpec &c, uint64_t salt = 0) {
         for (size_t i = 0; i < parity.size(); ++i) code[k + i] = parity[i];
         expect("NO_WRONG");
     } else if (kind == "splice") {
-        SymbolArt b = build_symbol([&] { CaseSpec cb = c; cb.neg_kind = "none"; cb.expected = "DECODE"; return cb; }(), 0x51ull);
+        SymbolArt b = build_symbol([&] { CaseSpec cb = c; cb.rasterizer = c.rasterizer; cb.neg_kind = "none"; cb.expected = "DECODE"; return cb; }(), 0x51ull);
         if (!b.error.empty()) { a.error = "splice partner: " + b.error; return a; }
         a.svg_b = b.svg; a.splice = std::clamp(c.neg_param, 0.05, 0.95);
         a.allowed.push_back(b.payload);

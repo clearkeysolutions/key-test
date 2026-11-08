@@ -1,0 +1,91 @@
+# Camera models (SPEC §5). Generic parameterizations of phone-class cameras at
+# the capture presets the CKey iOS reader requests (4K first, 1080p fallback;
+# CameraScanner.swift / CKeyCameraScanner.swift). They are NOT measurements of
+# any specific phone model and must be validated against the real capture
+# corpus (certification/qualification/real_device_protocol.md) before any
+# realism claim is made.
+#
+# focal_px: focal length in output pixels. f_mm / f_number / pixel pitch feed
+# thin-lens defocus when a case is closer than min_focus_mm.
+version: devices-v1
+devices:
+  phone_4k_wide:
+    weight: 0.45
+    frame: [2160, 3840]          # portrait, as the reader receives the luma plane
+    focal_px: 2360
+    k1: -0.02
+    k2: 0.0
+    f_mm: 6.9
+    f_number: 1.8
+    min_focus_mm: 100
+    full_well_e: 6000
+    read_noise_e: 2.5
+    max_signal_e: 5000
+    prnu: 0.006
+    adc_bits: 10
+    lens_sigma_px: [0.6, 0.9]    # residual blur at axis / corner
+    isp: {sharpen: 0.35, denoise: 0.15}
+  phone_1080p_wide:
+    weight: 0.30
+    frame: [1080, 1920]
+    focal_px: 1180
+    k1: -0.02
+    k2: 0.0
+    f_mm: 6.9
+    f_number: 1.8
+    min_focus_mm: 100
+    full_well_e: 9000            # binned output pixel
+    read_noise_e: 3.0
+    max_signal_e: 8000
+    prnu: 0.005
+    adc_bits: 10
+    lens_sigma_px: [0.45, 0.7]
+    isp: {sharpen: 0.3, denoise: 0.15}
+  phone_4k_ultrawide:
+    weight: 0.10
+    frame: [2160, 3840]
+    focal_px: 1100
+    k1: -0.12
+    k2: 0.02
+    f_mm: 2.2
+    f_number: 2.2
+    min_focus_mm: 25
+    full_well_e: 4000
+    read_noise_e: 3.5
+    max_signal_e: 2500
+    prnu: 0.008
+    adc_bits: 10
+    lens_sigma_px: [0.8, 1.5]
+    isp: {sharpen: 0.5, denoise: 0.25}
+  phone_1080p_tele:
+    weight: 0.08
+    frame: [1080, 1920]
+    focal_px: 3000
+    k1: 0.0
+    k2: 0.0
+    f_mm: 9.0
+    f_number: 2.8
+    min_focus_mm: 300
+    full_well_e: 7000
+    read_noise_e: 3.5
+    max_signal_e: 2500
+    prnu: 0.006
+    adc_bits: 10
+    lens_sigma_px: [0.6, 0.8]
+    isp: {sharpen: 0.3, denoise: 0.2}
+  budget_1080p:
+    weight: 0.07
+    frame: [1080, 1920]
+    focal_px: 1250
+    k1: -0.05
+    k2: 0.0
+    f_mm: 4.0
+    f_number: 2.2
+    min_focus_mm: 80
+    full_well_e: 4500
+    read_noise_e: 4.5
+    max_signal_e: 2500
+    prnu: 0.01
+    adc_bits: 10
+    lens_sigma_px: [0.9, 1.4]
+    isp: {sharpen: 0.7, denoise: 0.45}
