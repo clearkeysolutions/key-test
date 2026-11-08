@@ -15,65 +15,66 @@ What this repository does **not** do:
 
 Baseline facts, discrepancies and open owner decisions are in [CONTEXT.md](CONTEXT.md).
 
-## Running the whole campaign on a dedicated machine
+## Scope (owner decisions, 2026-11-08)
 
-You need Ubuntu 22.04/24.04 (or similar) with 8+ cores, 32 GB RAM and about 60 GB free disk.
+* **Profile 0 only.** The campaign tests P0 (Format 0.27) and P0.1 (Format 0.28 print layout), 25,000 cases each per stratum. Every supported (version 1–31, ECC level) combination is cycled, so all densities are covered. P1/P2 are scheduled for deprecation and P3 needs no tests. The reader adapter still runs the full production loop, so a P0 symbol misread as another profile would still be caught.
+* **1080p-class capture, no 4K.** Cameras are 1080p (wide, tele, budget, ultrawide) and 720p. A case first lowers its px/module (moves the camera back) until the symbol fits. The densest versions cannot fit at the declared 6 px/module in 1,080 px; they are imaged below it and flagged `below_declared_min_to_fit`. That measures the reader's real resolution floor.
+* **Storage:** big artifacts go to Cloudflare R2 (bucket `ckey-hardening-test`), content-addressed, about 3 objects per 1,000 cases. Small permanent evidence goes into git under `evidence/`: hashes, manifests, reports, counterexample case lines, and gzip -9 SVGs. Frames are never stored per case. Every frame regenerates bit for bit from its case line.
+* **ML:** `./ckt ml` builds a separate training cohort and trains a corner-localization MLP (numpy). It then runs a classical vs ML vs ML→refine ablation on identical frames and stores the model and dataset. Payloads are still accepted only by RS + CRC.
 
-```bash
-sudo apt install -y build-essential cmake ninja-build git python3 python3-venv openssh-client clang libclang-rt-18-dev tmux
-```
+## Running on a rented server (from your laptop)
 
-```bash
-git clone https://github.com/clearkeysolutions/key-test && cd key-test && git checkout claude/gifted-edison-fjs8l3
-```
-
-```bash
-scripts/preflight.sh
-```
-
-Preflight does the following:
-1. Clones `ckey` at the pinned commit into `third_party/ckey`.
-2. Creates `.venv`.
-3. Builds the worker (Release, `-ffp-contract=off`).
-4. Runs the selftest.
-5. Checks config/schema consistency.
-6. Benchmarks **this** machine and prints an ETA. On this harness's development container, a 4K case costs about 1.1 CPU-seconds, so plan for roughly 2–3 days of wall time for pilot + 1M + 500k on 8 cores.
-
-Then start the campaign inside tmux so it survives disconnects:
+The server needs these as root once (yours already has most of them):
 
 ```bash
-tmux new -s ckt 'scripts/run.sh --approver "Your Name"; bash'
+apt install -y git build-essential cmake ninja-build clang libclang-rt-dev python3 python3-venv tmux openssh-client
 ```
 
-`--approver` records, in a signed lock, that you approve the release gates in `configs/gates.yaml` and the pre-registered design. Review both files first. The run then goes through:
-1. `BASELINE_LOCKED`
-2. plan generation (pilot, structured, sealed holdout)
-3. plan validation
-4. the 10,000-case pilot gate
-5. the **1,000,000** structured cases
-6. classification and quota reconciliation
-7. the frozen, signed `REPORT_1M`
-8. weakness scoring
-9. the **500,000** adaptive cases (350k failure-targeted, 50k cross-condition, 100k boundary search in rounds)
-10. the sanitizer and fuzz security pass
-
-It stops at `PROPOSE_FIX`. Fixing the reader is a human-reviewed step.
-
-If anything stops the run (reboot, budget ceiling, `HALT`), continue with:
+On your laptop, in a clone of this repo on branch `claude/gifted-edison-fjs8l3`, put your R2 token in place (the file is gitignored):
 
 ```bash
-scripts/resume.sh
+cp scripts/server/r2.env.example scripts/server/r2.env && $EDITOR scripts/server/r2.env
 ```
 
-Completed cases are never re-run, and results are append-only.
-
-Watch it with:
+Ship the commit and start. This gives the server no GitHub credentials, and the campaign runs in tmux:
 
 ```bash
-./ckt status
+scripts/server/send.sh ckeyrunner@62.238.99.101 "Your Name"
 ```
 
-The live log is in `campaign/logs/`, and reports appear in `campaign/reports/`.
+Watch it:
+
+```bash
+scripts/server/status.sh ckeyrunner@62.238.99.101
+```
+
+Before the rental ends, push everything to R2 and build an archive bundle:
+
+```bash
+ssh ckeyrunner@62.238.99.101 'cd key-test && scripts/server/finish.sh'
+```
+
+Then bring the small evidence back into git:
+
+```bash
+scripts/server/fetch.sh ckeyrunner@62.238.99.101
+```
+
+The `"Your Name"` argument records, in the signed lock, that you approve `configs/gates.yaml` and the design. On the server, `scripts/server/start.sh` runs:
+1. preflight (pinned ckey, venv, build, selftest, benchmark/ETA)
+2. lock
+3. plans
+4. pilot
+5. the 1,000,000 structured cases
+6. the frozen REPORT_1M
+7. the 500,000 adaptive cases
+8. ML
+9. triage
+10. sanitizers and fuzzing
+11. R2 sync
+12. evidence export
+
+It resumes by itself if interrupted; re-run it if the box reboots. At about 0.5 core-seconds per 1080p case, the 1.5M cases take roughly a day on 8 cores. Preflight prints the measured ETA.
 
 ## After the automated stages
 
@@ -124,3 +125,4 @@ campaign/     (generated, gitignored) plans, results, traces, images, DB, state,
 * **Counting.** A reader crash or hang is a completed failure. A harness fault is rerun, and a repeated harness fault halts the campaign. Invalid generation halts. Nothing is silently skipped.
 * **Physical honesty.** Each case gets a physical class: `RECOVERABLE` / `MARGINAL` / `UNRECOVERABLE`. The labels come from measured px/module, MTF × contrast vs noise (d′), occlusion vs ECC budget, and cropping. Impossible cases are reported separately rather than as reader failures.
 * **Simulation is not reality.** The camera models are generic until they are validated against a real capture corpus. Server timings are not iPhone timings.
+* **Storage cost.** R2 holds about 3–6 GB in about 5,000 objects for the whole campaign. That is a few cents per month and no egress fees.

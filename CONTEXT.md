@@ -67,17 +67,47 @@ Camera: the reader requests the 4K preset (2160 × 3840 portrait luma) and falls
 | D1 | The mandate names the repo `ckey-test`; the provided repo is `key-test`. | Used `key-test`. Paths and docs say so. |
 | D2 | The mandate lists P0..P3; the code also has P0.1 (Format 0.28, draft). | P0 cases are split 50/50 between standard and print layouts, and reported separately in `format_version`. |
 | D3 | Formats 0.25–0.28 are all marked "draft" in the spec. | Tested as the current canonical format at the pinned commit. Certification scope will say "draft formats". |
-| D4 | The P1 minimum resolution is undeclared. | Assumed 6 px/module for G2; owner to confirm (OI-3). |
+| D4 | P0.1 has no separately declared minimum resolution. | Assumed 6 px/module (same as P0) for G2; owner to confirm (OI-3). |
 | D5 | The reader has no multi-frame fusion, although SPEC §6 lists it as a mechanism. | S20 measures the real behaviour (first decoded frame). Fusion would be a proposed change, not something the test assumes. |
 | D6 | ckey's own SVG rasterizer (`src/svg_raster.h`) is test-only code. | The harness uses its own independent rasterizer for textures. ckey's rasterizer is the cross-check oracle and the holdout's alternate rendering pipeline. |
+
+## Owner scope decisions (2026-11-08)
+
+* **Only P0 and P0.1 are tested**, across all densities (versions 1–31) and ECC levels. P1/P2 will be deprecated; P3 needs no tests. The harness still contains P1–P3 support (encoder, oracle, selftest). The reader adapter runs the full production loop, so a P0 symbol misdecoded by another profile's decoder would still count as a wrong payload.
+* **No 4K capture frames.** Hardening targets ordinary 1080p/720p capture. Note that "4K" referred to the camera frame, not the print, and the shipping iOS reader does request 4K first (`CameraScanner.swift`). `configs/devices.yaml: allow_4k_fallback` re-enables it for dense versions only.
+* **Storage:** Cloudflare R2 bucket `ckey-hardening-test` holds the content-addressed shard bundles. git holds `evidence/`: hashes, manifests, reports, counterexample case lines and gzipped SVGs.
+* **ML:** build and train it (`./ckt ml`), and store everything needed to retrain.
+
+## Resolution and QR parity (why dense P0 "does not fit" 1080p)
+
+Pixels per module is set by how many modules a symbol has, not by the format family. The capture frame's short side is 1,080 px. With the 0.9 fill used here, the most px/module available for a symbol N module-widths across (quiet margin included) is about 972 / N.
+
+| Symbol | Module-widths across | Max px/module in 1,080 px | Capacity (byte mode, level M) |
+|---|---:|---:|---:|
+| P0 v1 | 31 | 31 | 27 B |
+| P0 v11 | 62 | 15.7 | 228 B |
+| P0 v21 | 124 | 7.8 | 1,085 B |
+| P0 v31 | 248 | 3.9 | 4,619 B |
+| QR v10 (57 + 8 quiet) | 65 | 15.0 | 213 B |
+| QR v25 (117 + 8) | 125 | 7.8 | 997 B |
+| QR v40 (177 + 8) | 185 | 5.3 | 2,331 B |
+
+So at **equal width, P0 holds about the same as QR** (P0 v21 1,085 B vs QR v25 997 B, both ~124 module-widths). P0 v31 holds twice QR v40's maximum, and no 1080p frame can show either of them at 6 px/module.
+
+The gap to QR is therefore **not** the module count. It is the px/module the reader needs:
+* ckey documents 6 px/module as the clean minimum for P0;
+* QR readers routinely decode at 2–3 px/module.
+
+Closing that gap is what this campaign measures. S03 sweeps 1.2–7.5 px/module, and every dense version is imaged at whatever 1080p allows. The development observations below already show the main obstacle: corner/quad localization, not the error correction. A direct QR baseline in the same simulator would need zxing-cpp; ckey already has an optional `CKEY_BENCH_ZXING` benchmark. It is not part of this campaign yet (open issue OI-7).
 
 ## Open issues needing the owner
 
 * **OI-1 Reference iOS device (gate G4).** None is named, so G4 stays NOT_EVALUATED. Server timings are reported as indicative only.
 * **OI-2 Real capture corpus.** None exists yet. Simulated distributions cannot be called "realistic" until compared with one (`certification/qualification/real_device_protocol.md`). Until then the best possible label is SYNTHETICALLY_HARDENED.
-* **OI-3 P1 declared minimum resolution.** Assumed 6 px/module.
+* **OI-3 P0.1 declared minimum resolution.** Assumed 6 px/module, as for P0.
 * **OI-4 Mirror handling.** It is unspecified whether a mirrored symbol must be rejected or may decode. The harness only requires that it never yields a *different* payload (`NO_WRONG`).
 * **OI-5 Push access to `clearkeysolutions/ckey`.** This session had read access only. Fixes are prepared as patches or PRs for human review, never merged automatically.
+* **OI-7 QR baseline.** Run QR (zxing-cpp) through the same simulator for a head-to-head px/module floor? This is not in scope until you approve it.
 * **OI-6 Gate approval.** `configs/gates.yaml` is PROPOSED. `./ckt lock --approver "NAME"` records your approval before any counted case runs.
 
 ## Development observations (NOT campaign results)

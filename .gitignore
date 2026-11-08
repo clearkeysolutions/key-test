@@ -10,3 +10,7 @@ __pycache__/
 
 # Server credentials (never commit)
 scripts/server/r2.env
+
+# Trained models are copied into evidence/ml by ./ckt export-evidence
+ml/models/*
+!ml/models/.gitkeep
