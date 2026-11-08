@@ -412,11 +412,18 @@ def finalize_geometry(p: dict, g: Geo, r: random.Random) -> list[str]:
 # ---------------------------------------------------------------- the case
 def make_case(cohort: str, master: str, stratum: str, profile: str, b: int, mode: str, k: int,
               severity: float | None = None, case_id: str | None = None, extra_factors: list | None = None,
-              family_size: int = 5, seed_labels: tuple = ()) -> dict:
-    """Builds one case. `extra_factors` = [(stratum, severity), ...] are applied after the primary (cross-condition)."""
+              family_size: int = 5, seed_labels: tuple = (), params_from: tuple | None = None) -> dict:
+    """Builds one case.
+
+    extra_factors: [(stratum, severity), ...] applied after the primary factor (cross-condition).
+    params_from: (master, cohort) whose conditions and payload to reproduce exactly (boundary search);
+                 only the severity override and the noise seed (seed_labels) then differ.
+    """
+    pmaster, pcohort = params_from or (master, cohort)
+    plabel = (pcohort, stratum, profile, b, mode, k)
     label = (cohort, stratum, profile, b, mode, k) + tuple(seed_labels)
-    r = rng_for(master, "params", *label)
-    rs = rng_for(master, "severity", *label)
+    r = rng_for(pmaster, "params", *(plabel if params_from else label))
+    rs = rng_for(pmaster, "severity", *(plabel if params_from else label))
     x = severity if severity is not None else sample_in_bin(stratum, b, rs)
     fill = x if stratum == "S02" else None
     pattern = PATTERNS[k % len(PATTERNS)] if stratum == "S02" else None
@@ -456,8 +463,12 @@ def make_case(cohort: str, master: str, stratum: str, profile: str, b: int, mode
         (f2(p, g, r, x2, "joint", k) if s2 in NEEDS_K else f2(p, g, r, x2, "joint"))
     notes = finalize_geometry(p, g, r)
     fam = k // family_size
-    p["payload_family"] = f"{cohort}/{stratum}/{profile}/{b}/{mode}/{fam}"
-    p["payload_seed"] = str(derive_seed(master, "payload", cohort, stratum, profile, b, mode, fam, *seed_labels))
+    if params_from:
+        p["payload_family"] = f"{pcohort}/{stratum}/{profile}/{b}/{mode}/{fam}"
+        p["payload_seed"] = str(derive_seed(pmaster, "payload", pcohort, stratum, profile, b, mode, fam))
+    else:
+        p["payload_family"] = f"{cohort}/{stratum}/{profile}/{b}/{mode}/{fam}"
+        p["payload_seed"] = str(derive_seed(master, "payload", cohort, stratum, profile, b, mode, fam, *seed_labels))
     p["seed"] = str(derive_seed(master, "case", *label))
     p["device_seed"] = str(derive_seed("device-units", p["device"], "holdout" if cohort == "holdout" else "campaign"))
     if p.get("expected") == "DECODE_ANY_OF" and negative:

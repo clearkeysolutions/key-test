@@ -72,6 +72,20 @@ def worker_schema() -> dict:
 LEVELS = ("L", "M", "Q", "H")
 
 
+def test_scale() -> int:
+    """CKT_TEST_SCALE=N divides every quota by N to exercise the full pipeline quickly.
+    A test-scale campaign records the scale in its lock and every report; it can never qualify."""
+    try:
+        return max(1, int(os.environ.get("CKT_TEST_SCALE", "1")))
+    except ValueError:
+        return 1
+
+
+def scaled(n: int, floor: int = 1) -> int:
+    t = test_scale()
+    return n if t == 1 else max(floor, n // t)
+
+
 def p0_capacity(version: int, level: str, layout: str) -> int:
     row = capacity_table()["p0"][version - 1]
     return int(row[layout][LEVELS.index(level)])

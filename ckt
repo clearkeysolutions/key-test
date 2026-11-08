@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""ckt -- CKey reader hardening campaign (CKTEST-RH-001) command line.
+
+  ./ckt status                      campaign state and per-plan-set progress
+  ./ckt run --approver "NAME"       lock (first time) and run every automated stage through EXECUTE_500K; resumable
+  ./ckt resume                      continue the automated stages from the current state
+  ./ckt lock --approver "NAME"      BASELINE_LOCKED (records gate approval)
+  ./ckt generate | validate | execute | classify | report-1m | select | execute-adaptive
+  ./ckt build-candidate --ckey PATH --label NAME   build a worker against a candidate ckey checkout
+  ./ckt regress --label NAME        golden-suite regression of a candidate vs the frozen baseline
+  ./ckt holdout --label NAME        independent holdout on a candidate (or 'baseline')
+  ./ckt review                      evaluate gates, assign the (non-certified) label
+  ./ckt repro CASE_ID [--out DIR]   regenerate a case's frames and check its image hash
+  ./ckt verify [--sample N]         offline verification: hashes, signatures, sampled re-execution
+  ./ckt archive --dest DIR          copy permanent assets with SHA256SUMS (never deletes anything)
+  ./ckt smoke [--cases N]           one-command local smoke run in a scratch directory
+"""
+from __future__ import annotations
+
+import argparse
+import gzip
+import json
+import os
+import random
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+_VENV = ROOT / ".venv" / "bin" / "python"
+if _VENV.exists() and Path(sys.prefix).resolve() != (ROOT / ".venv").resolve() and not os.environ.get("CKT_NO_VENV"):
+    os.execv(str(_VENV), [str(_VENV), __file__, *sys.argv[1:]])  # run inside the pinned environment
+sys.path.insert(0, str(ROOT))
+
+from generator.common import file_sha256, worker_path  # noqa: E402
+from runners.campaign import STATES, Campaign  # noqa: E402
+from runners.sharding.supervisor import Halt, read_jsonl  # noqa: E402
+
+
+def pilot_passed(c: Campaign) -> bool:
+    f = c.data / "reports" / "pilot_gate.json"
+    return f.exists() and not json.loads(f.read_text())["problems"]
+
+
+def automated(c: Campaign, approver: str | None) -> None:
+    """Advance through every automated stage; each state maps to the work that moves it forward."""
+    while True:
+        st = c.state
+        if st == "NEW":
+            if not approver:
+                raise SystemExit('first run needs --approver "Your Name" (records approval of configs/gates.yaml before execution)')
+            c.do_lock(approver)
+        elif st == "BASELINE_LOCKED":
+            c.do_generate()
+        elif st == "GENERATE":
+            c.do_generate()
+            c.do_validate()
+        elif st == "VALIDATE_ARTIFACT":
+            if not pilot_passed(c):
+                c.do_validate()
+            c.do_execute()
+        elif st == "EXECUTE":
+            c.do_execute()
+            c.do_classify()
+        elif st == "CLASSIFY":
+            c.do_report_1m()
+        elif st == "REPORT_1M":
+            c.do_select()
+        elif st in ("SELECT_WEAKNESSES", "EXECUTE_500K"):
+            c.do_execute_adaptive()
+        else:
+            print(f"\nAutomated stages complete (state {st}). Reports: {c.data / 'reports'}\n"
+                  "Next (human-reviewed): propose fixes via PRs to clearkeysolutions/ckey, then\n"
+                  "  ./ckt build-candidate --ckey PATH --label NAME ; ./ckt regress --label NAME ; ./ckt holdout --label NAME ; ./ckt review")
+            return
+        if c.state == st:
+            raise SystemExit(f"stage for {st} did not advance; see the log above")
+
+
+def find_case(c: Campaign, case_id: str) -> tuple[str, dict] | None:
+    plans = c.data / "plans"
+    order = sorted(p.name for p in plans.iterdir()) if plans.exists() else []
+    prefix = case_id.split("-")[0]
+    order.sort(key=lambda n: (not n.startswith(prefix), n))
+    for ps in order:
+        for f in sorted((plans / ps).glob("shard-*.jsonl.gz")):
+            with gzip.open(f, "rt") as fh:
+                for line in fh:
+                    if f'"case_id":"{case_id}"' in line:
+                        return ps, json.loads(line)
+    return None
+
+
+def recorded_result(c: Campaign, ps: str, case_id: str) -> dict | None:
+    for f in sorted((c.data / "results" / ps).glob("shard-*.jsonl*")):
+        for r in read_jsonl(f):
+            if r.get("case_id") == case_id and r.get("status") == "COMPLETED":
+                return r
+    return None
+
+
+def repro(c: Campaign, case_id: str, out: Path | None, worker: Path | None = None, quiet: bool = False) -> dict:
+    hit = find_case(c, case_id)
+    if not hit:
+        raise SystemExit(f"case {case_id} not found in any plan")
+    ps, case = hit
+    out = out or (c.data / "repro" / case_id)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "case.json").write_text(json.dumps(case, indent=1))
+    line = out / "case.line.json"
+    line.write_text(json.dumps(case) + "\n")
+    p = subprocess.run([str(worker or worker_path()), "--repro", str(line), "--out", str(out)], capture_output=True, text=True, check=True)
+    res = json.loads(p.stdout.strip().splitlines()[-1])
+    (out / "result.json").write_text(json.dumps(res, indent=1))
+    rec = recorded_result(c, ps, case_id)
+    verdict = {"case_id": case_id, "plan_set": ps, "out": str(out), "image_hash": res.get("image_hash"),
+               "recorded_image_hash": rec.get("image_hash") if rec else None, "outcome": res.get("observed_outcome"),
+               "recorded_outcome": rec.get("observed_outcome") if rec else None}
+    verdict["reproduced"] = rec is not None and verdict["image_hash"] == verdict["recorded_image_hash"] and verdict["outcome"] == verdict["recorded_outcome"]
+    if not quiet:
+        print(json.dumps(verdict, indent=1))
+    return verdict
+
+
+def verify(c: Campaign, sample: int) -> int:
+    from security.artifact_signing import sign as signing
+    bad = 0
+    for mf in sorted((c.data / "manifests").glob("*.jsonl")):
+        ps = mf.stem
+        for r in read_jsonl(mf):
+            for kind, key in (("results", "results_sha256"), ("traces", "traces_sha256")):
+                f = c.data / kind / ps / f"{r['stem']}.jsonl.gz"
+                if r.get(key) and (not f.exists() or file_sha256(f) != r[key]):
+                    print(f"HASH MISMATCH {f}"); bad += 1
+            pf = c.data / "plans" / ps / f"{r['stem']}.jsonl.gz"
+            if file_sha256(pf) != r["plan_sha256"]:
+                print(f"PLAN HASH MISMATCH {pf}"); bad += 1
+        print(f"manifest {ps}: checked")
+    for f in [c.state_dir / "lock.json", c.data / "reports" / "structured_1m.freeze.json", c.data / "reports" / "adaptive_500k.freeze.json"]:
+        if f.exists():
+            ok = signing.verify(f, c.data / "keys")
+            print(f"signature {f.name}: {'OK' if ok else 'NOT VERIFIED (unsigned or ssh-keygen missing)'}")
+    ids = []
+    for mf in sorted((c.data / "manifests").glob("*.jsonl")):
+        for r in read_jsonl(mf):
+            for x in read_jsonl(c.data / "results" / mf.stem / f"{r['stem']}.jsonl.gz"):
+                if x.get("status") == "COMPLETED" and x.get("versions") != "supervisor-synthesized":
+                    ids.append(x["case_id"])
+                break
+    random.Random(0).shuffle(ids)
+    rep = 0
+    for cid in ids[:sample]:
+        v = repro(c, cid, Path(tempfile.mkdtemp()), quiet=True)
+        rep += v["reproduced"]
+        if not v["reproduced"]:
+            print(f"NOT REPRODUCED {cid}: {v}"); bad += 1
+    print(f"re-executed {min(sample, len(ids))} sampled cases: {rep} reproduced bit-for-bit")
+    return bad
+
+
+def archive(c: Campaign, dest: Path) -> None:
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    out = dest / f"ckey-test-archive-{stamp}"
+    out.mkdir(parents=True)
+    subprocess.run(["git", "-C", str(ROOT), "bundle", "create", str(out / "ckey-test.bundle"), "--all"], check=True)
+    for sub in ("state", "manifests", "reports", "plans", "results", "traces", "infra", "retries", "keys"):
+        src = c.data / sub
+        if src.exists():
+            shutil.copytree(src, out / sub, ignore=shutil.ignore_patterns("holdout_secret", "campaign_ed25519"))
+    imgs = c.data / "images"
+    if imgs.exists():  # documented retention: all wrong-payload frames, capped failure crops, sampled successes
+        shutil.copytree(imgs, out / "images", ignore=shutil.ignore_patterns(".slots"))
+    lines = []
+    for f in sorted(out.rglob("*")):
+        if f.is_file():
+            lines.append(f"{file_sha256(f)}  {f.relative_to(out)}")
+    (out / "SHA256SUMS").write_text("\n".join(lines) + "\n")
+    print(f"archive written to {out} ({len(lines)} files). Upload it to permanent versioned storage and verify SHA256SUMS there.\n"
+          "This command never deletes the temporary repository; deletion requires explicit owner approval (SPEC §14).")
+
+
+def smoke(cases: int) -> None:
+    """Self-contained smoke run: tiny plan, real worker, supervisor, ingest, report."""
+    from analysis.metrics import db as dbm
+    from analysis.metrics import report as rpt
+    from generator import plan as planmod
+    from generator.common import PROFILES
+    from generator.strata import STRATA, make_case
+    from runners.sharding.supervisor import Supervisor
+    tmp = Path(tempfile.mkdtemp(prefix="ckt-smoke-"))
+    out = []
+    i = 0
+    strata = sorted(STRATA)
+    while len(out) < cases:
+        s, p, b = strata[i % 20], PROFILES[(i // 20) % 4], (i // 80) % 5
+        mode = ("sweep", "joint", "negative")[i % 3]
+        out.append(make_case("smoke", "CKTEST-RH-001/smoke", s, p, b, mode, i))
+        i += 1
+    planmod.write_cases(tmp, "smoke", out)
+    res = Supervisor(tmp, "smoke", log=print).run()
+    con = dbm.connect(tmp / "db" / "results.sqlite")
+    dbm.ingest(con, tmp, "smoke")
+    rep = rpt.cohort_report(con, "smoke")
+    j, m = rpt.write(rep, tmp / "reports", "smoke", "Smoke run")
+    print(json.dumps(res, indent=1))
+    print(f"smoke report: {m}")
+    if rep["completed_cases"] != cases:
+        raise SystemExit("smoke run incomplete")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--data-dir", type=Path, default=None)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("status", "generate", "validate", "execute", "classify", "report-1m", "select", "execute-adaptive", "resume", "review"):
+        sub.add_parser(name)
+    for name in ("run", "lock"):
+        sp = sub.add_parser(name); sp.add_argument("--approver", default=None)
+    sp = sub.add_parser("build-candidate"); sp.add_argument("--ckey", type=Path, required=True); sp.add_argument("--label", required=True)
+    for name in ("regress", "holdout"):
+        sp = sub.add_parser(name); sp.add_argument("--label", required=True)
+    sp = sub.add_parser("repro"); sp.add_argument("case_id"); sp.add_argument("--out", type=Path)
+    sp = sub.add_parser("verify"); sp.add_argument("--sample", type=int, default=50)
+    sp = sub.add_parser("archive"); sp.add_argument("--dest", type=Path, required=True)
+    sp = sub.add_parser("smoke"); sp.add_argument("--cases", type=int, default=120)
+    a = ap.parse_args()
+    if a.cmd == "smoke":
+        return smoke(a.cases)
+    c = Campaign(a.data_dir)
+    try:
+        if a.cmd == "status":
+            print(json.dumps(c.status(), indent=1))
+        elif a.cmd in ("run", "resume"):
+            automated(c, getattr(a, "approver", None))
+        elif a.cmd == "lock":
+            c.do_lock(a.approver or "")
+        elif a.cmd == "generate":
+            c.do_generate()
+        elif a.cmd == "validate":
+            c.do_validate()
+        elif a.cmd == "execute":
+            c.do_execute()
+        elif a.cmd == "classify":
+            c.do_classify()
+        elif a.cmd == "report-1m":
+            c.do_report_1m()
+        elif a.cmd == "select":
+            c.do_select()
+        elif a.cmd == "execute-adaptive":
+            c.do_execute_adaptive()
+        elif a.cmd == "build-candidate":
+            print(c.build_candidate(a.ckey.resolve(), a.label))
+        elif a.cmd == "regress":
+            print(json.dumps(c.regress(a.label, ROOT / "builds" / a.label / "ckt_worker"), indent=1))
+        elif a.cmd == "holdout":
+            w = worker_path() if a.label == "baseline" else ROOT / "builds" / a.label / "ckt_worker"
+            c.holdout(a.label, w)
+        elif a.cmd == "review":
+            print(json.dumps(c.review(), indent=1, default=str))
+        elif a.cmd == "repro":
+            repro(c, a.case_id, a.out)
+        elif a.cmd == "verify":
+            sys.exit(1 if verify(c, a.sample) else 0)
+        elif a.cmd == "archive":
+            archive(c, a.dest)
+    except Halt as e:
+        print(f"\nCAMPAIGN HALTED: {e}\nNothing was skipped. Inspect campaign/infra/ and the report, fix the cause, then ./ckt resume.", file=sys.stderr)
+        sys.exit(3)
+
+
+if __name__ == "__main__":
+    main()

@@ -20,7 +20,7 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from generator.common import PROFILES, derive_seed, load_yaml, worker_schema
+from generator.common import PROFILES, derive_seed, load_yaml, scaled, test_scale, worker_schema
 from generator.strata import STRATA, make_case
 
 CFG = load_yaml("strata.yaml")
@@ -30,10 +30,13 @@ PILOT_CELL = {"negative": 3, "sweep": 11, "joint": 11}   # 25 per cell x 400 cel
 
 
 def cell_counts(scale_div: int = 1, cohort: str = "") -> dict:
-    if cohort == "pilot":
-        return dict(PILOT_CELL)
-    a = CFG["per_profile_bin"]
-    return {m: a[m] // scale_div for m in ("negative", "sweep", "joint")}
+    if test_scale() != 1:  # keeps the >=10% negative and >=40% sweep rules satisfiable at tiny scale
+        return {"negative": 1, "sweep": 2, "joint": 2}
+    return dict(PILOT_CELL) if cohort == "pilot" else {m: CFG["per_profile_bin"][m] // scale_div for m in ("negative", "sweep", "joint")}
+
+
+def expected_total(cohort: str, scale_div: int = 1) -> int:
+    return sum(cell_counts(scale_div, cohort).values()) * len(STRATA) * len(PROFILES) * CFG["severity_bins"]
 
 
 def design_index(cohort: str, scale_div: int = 1) -> list[tuple]:
@@ -154,3 +157,25 @@ def validate(data_dir: Path, cohort: str, expect_total: int | None = None) -> di
               "per_stratum_profile": {f"{s}/{p}": n for (s, p), n in sorted(by_profile.items())},
               "generation_notes": dict(notes), "problems": problems, "ok": not problems}
     return report
+
+
+def write_cases(data_dir: Path, plan_set: str, cases: list[dict], meta: dict | None = None) -> dict:
+    """Write an explicit list of cases (adaptive pools, boundary rounds, regression) as a plan set."""
+    out_dir = data_dir / "plans" / plan_set
+    if out_dir.exists() and any(out_dir.iterdir()):
+        raise SystemExit(f"plan set {plan_set} already exists; plans are immutable")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    size = CFG["shard_size"]
+    shards = []
+    for i in range(0, len(cases), size):
+        chunk = [strip_private(dict(c))[0] for c in cases[i:i + size]]
+        data = ("\n".join(json.dumps(c, separators=(",", ":"), sort_keys=True) for c in chunk) + "\n").encode()
+        path = out_dir / f"shard-{i // size:05d}.jsonl.gz"
+        with gzip.GzipFile(path, "wb", mtime=0) as fh:
+            fh.write(data)
+        shards.append({"shard": i // size, "file": path.name, "cases": len(chunk), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                       "plan_sha256": hashlib.sha256(data).hexdigest(), "notes": {}})
+    manifest = {"cohort": cases[0]["cohort"] if cases else None, "plan_set": plan_set, "cases": len(cases), "shards": shards, "meta": meta or {},
+                "plan_root_sha256": hashlib.sha256("".join(s["plan_sha256"] for s in shards).encode()).hexdigest()}
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1, sort_keys=True))
+    return manifest

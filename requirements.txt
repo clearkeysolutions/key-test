@@ -1,0 +1,2 @@
+# Python dependencies of the orchestration/analysis layer (everything else is the standard library).
+PyYAML==6.0.2
