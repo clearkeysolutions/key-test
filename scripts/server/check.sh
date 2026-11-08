@@ -50,7 +50,7 @@ events = [e for f in glob.glob("campaign/infra/*.jsonl") for e in jl(f) if e.get
 kinds = {}
 for e in events:
     kinds[e["kind"]] = kinds.get(e["kind"], 0) + 1
-print(f"problems logged: {kinds or 'none'}")
+print(f"problems logged: {kinds or "none"}")
 du = shutil.disk_usage(".")
 print(f"disk free: {du.free / 1e9:.0f} GB")
 PY
