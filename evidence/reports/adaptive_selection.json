@@ -1,0 +1,4054 @@
+{
+ "weights": {
+  "w_noread": 1.0,
+  "w_wrong": 100.0,
+  "w_latency": 0.2,
+  "w_geometry": 0.2,
+  "w_uncertainty": 0.5,
+  "w_margin": 0.3
+ },
+ "scores": [
+  {
+   "stratum": "S12",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3169,
+   "score": 1.6385136149542832,
+   "components": {
+    "noread": 0.9990533291259073,
+    "wrong": 0.0,
+    "latency": 0.691157,
+    "geometry": 1.0,
+    "uncertainty": 0.0024577716567514476,
+    "margin": 1.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2904,
+    "NO_BORDER": 144,
+    "BORDER_MISS": 118
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3443,
+   "score": 1.5884611547881995,
+   "components": {
+    "noread": 0.9950624455416788,
+    "wrong": 0.0,
+    "latency": 0.5198679999999998,
+    "geometry": 1.0,
+    "uncertainty": 0.00480836170633816,
+    "margin": 0.9567364279778386
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 3128,
+    "BORDER_MISS": 151,
+    "NO_BORDER": 147
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 5,
+   "score": 1.5479990832041026,
+   "components": {
+    "noread": 0.8,
+    "wrong": 0.0,
+    "latency": 0.0873489999999999,
+    "geometry": 0.878578,
+    "uncertainty": 0.5882412616050445,
+    "margin": 0.8689768413386008
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 4
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3334,
+   "score": 1.539494107269174,
+   "components": {
+    "noread": 0.998500299940012,
+    "wrong": 0.0,
+    "latency": 0.37238324999999994,
+    "geometry": 1.0,
+    "uncertainty": 0.0028653352513080734,
+    "margin": 0.8836149656783601
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2040,
+    "BORDER_MISS": 763,
+    "NO_BORDER": 526
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 15,
+   "score": 1.5209003349555992,
+   "components": {
+    "noread": 0.9333333333333333,
+    "wrong": 0.0,
+    "latency": 0.16190900000000008,
+    "geometry": 0.56018,
+    "uncertainty": 0.2862984032445317,
+    "margin": 1.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 12,
+    "BORDER_MISS": 2
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 288,
+   "score": 1.5045835177596565,
+   "components": {
+    "noread": 0.9930555555555556,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.023055924408201915,
+    "margin": 1.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 162,
+    "NO_BORDER": 67,
+    "UNCORRECTABLE": 57
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3323,
+   "score": 1.5008908715857674,
+   "components": {
+    "noread": 0.9891664158892567,
+    "wrong": 0.0,
+    "latency": 0.16353399999999874,
+    "geometry": 1.0,
+    "uncertainty": 0.007125421728822703,
+    "margin": 0.918183149440332
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2451,
+    "BORDER_MISS": 374,
+    "NO_BORDER": 462
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3946,
+   "score": 1.500226949578395,
+   "components": {
+    "noread": 0.9992397364419665,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.0019744262728573158,
+    "margin": 1.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 622,
+    "UNCORRECTABLE": 2719,
+    "NO_BORDER": 602
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3915,
+   "score": 1.4962672587276482,
+   "components": {
+    "noread": 0.9977011494252873,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.0031535991219605033,
+    "margin": 0.9899643658046018
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2448,
+    "NO_BORDER": 914,
+    "BORDER_MISS": 544
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 244,
+   "score": 1.4951319199118904,
+   "components": {
+    "noread": 0.9795081967213115,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.038280298675666735,
+    "margin": 0.9882785795091518
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 64,
+    "BORDER_MISS": 141,
+    "UNCORRECTABLE": 34
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 116,
+   "score": 1.4813957401236792,
+   "components": {
+    "noread": 0.9827586206896551,
+    "wrong": 0.0,
+    "latency": 0.10575000000000001,
+    "geometry": 0.7915719999999999,
+    "uncertainty": 0.05594991090365495,
+    "margin": 0.9706592132739889
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 104,
+    "BORDER_MISS": 8,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 2370,
+   "score": 1.4547191916120834,
+   "components": {
+    "noread": 0.9966244725738397,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.004935530111641067,
+    "margin": 0.852089846608077
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 575,
+    "UNCORRECTABLE": 1295,
+    "BORDER_MISS": 492
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 124,
+   "score": 1.4382495784282687,
+   "components": {
+    "noread": 0.967741935483871,
+    "wrong": 0.0,
+    "latency": 0.08078699999999994,
+    "geometry": 0.603259,
+    "uncertainty": 0.06739688588879525,
+    "margin": 1.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 4,
+    "UNCORRECTABLE": 106,
+    "BORDER_MISS": 10
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3475,
+   "score": 1.4370759713098336,
+   "components": {
+    "noread": 0.9810071942446044,
+    "wrong": 0.0,
+    "latency": 0.46492299999999953,
+    "geometry": 1.0,
+    "uncertainty": 0.009133741973881157,
+    "margin": 0.5283910202609624
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2718,
+    "NO_BORDER": 359,
+    "BORDER_MISS": 332
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 428,
+   "score": 1.4020111257565673,
+   "components": {
+    "noread": 0.883177570093458,
+    "wrong": 0.0,
+    "latency": 0.19931125000000005,
+    "geometry": 0.779331,
+    "uncertainty": 0.06097259171633784,
+    "margin": 0.975396032683135
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 370,
+    "BORDER_MISS": 7,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3086,
+   "score": 1.3983515488471305,
+   "components": {
+    "noread": 0.9669475048606611,
+    "wrong": 0.0,
+    "latency": 0.4360550000000001,
+    "geometry": 1.0,
+    "uncertainty": 0.012660404993446103,
+    "margin": 0.4595428049658218
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 298,
+    "UNCORRECTABLE": 2295,
+    "BORDER_MISS": 391
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2906,
+   "score": 1.3569090169809357,
+   "components": {
+    "noread": 0.8217481073640743,
+    "wrong": 0.0,
+    "latency": 0.47147625000000004,
+    "geometry": 1.0,
+    "uncertainty": 0.0278248197799717,
+    "margin": 0.7565108324229177
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2255,
+    "NO_BORDER": 57,
+    "BORDER_MISS": 76
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 189,
+   "score": 1.3551426922550553,
+   "components": {
+    "noread": 0.835978835978836,
+    "wrong": 0.0,
+    "latency": 0.16879500000000003,
+    "geometry": 0.936412,
+    "uncertainty": 0.10537986562486518,
+    "margin": 0.8181084115459554
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 128,
+    "BORDER_MISS": 29,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 411,
+   "score": 1.3502800119742542,
+   "components": {
+    "noread": 0.9197080291970803,
+    "wrong": 0.0,
+    "latency": 0.031645000000000145,
+    "geometry": 0.542813,
+    "uncertainty": 0.052874044006043286,
+    "margin": 0.9641445359138411
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 373,
+    "BORDER_MISS": 5
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3423,
+   "score": 1.3311428307182653,
+   "components": {
+    "noread": 0.9079754601226994,
+    "wrong": 0.0,
+    "latency": 0.4717794999999996,
+    "geometry": 1.0,
+    "uncertainty": 0.01937779319453084,
+    "margin": 0.39707524666100197
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 350,
+    "UNCORRECTABLE": 2484,
+    "NO_BORDER": 274
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 1018,
+   "score": 1.3226039717996683,
+   "components": {
+    "noread": 0.9754420432220039,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.01931313805319286,
+    "margin": 0.4583511985035603
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 772,
+    "NO_BORDER": 48,
+    "BORDER_MISS": 173
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3697,
+   "score": 1.2960938918385856,
+   "components": {
+    "noread": 0.8395996754124966,
+    "wrong": 0.0,
+    "latency": 0.07851999999999992,
+    "geometry": 1.0,
+    "uncertainty": 0.02365699265984017,
+    "margin": 0.7632057336538968
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 335,
+    "UNCORRECTABLE": 2456,
+    "NO_BORDER": 313
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 21,
+   "score": 1.2893197094624234,
+   "components": {
+    "noread": 1.0,
+    "wrong": 0.0,
+    "latency": 0.22050499999999995,
+    "geometry": 0.839496,
+    "uncertainty": 0.154639018924847,
+    "margin": 0.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 21
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 2581,
+   "score": 1.2856032864390976,
+   "components": {
+    "noread": 0.9790778767919411,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.011126502384321904,
+    "margin": 0.33654052818331776
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 1420,
+    "NO_BORDER": 1045,
+    "UNCORRECTABLE": 62
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3330,
+   "score": 1.2736352809990505,
+   "components": {
+    "noread": 1.0,
+    "wrong": 0.0,
+    "latency": 0.3652957499999996,
+    "geometry": 1.0,
+    "uncertainty": 0.0011522619981014317,
+    "margin": 0.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2631,
+    "NO_BORDER": 379,
+    "BORDER_MISS": 320
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3502,
+   "score": 1.2733610154505366,
+   "components": {
+    "noread": 1.0,
+    "wrong": 0.0,
+    "latency": 0.36406574999999974,
+    "geometry": 1.0,
+    "uncertainty": 0.0010957309010734121,
+    "margin": 0.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2188,
+    "NO_BORDER": 542,
+    "BORDER_MISS": 772
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 1068,
+   "score": 1.2574775953137565,
+   "components": {
+    "noread": 0.9541198501872659,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.025261691451360715,
+    "margin": 0.3024229980027014
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 789,
+    "BORDER_MISS": 167,
+    "NO_BORDER": 63
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3152,
+   "score": 1.2551451767118957,
+   "components": {
+    "noread": 1.0,
+    "wrong": 0.0,
+    "latency": 0.27268275,
+    "geometry": 1.0,
+    "uncertainty": 0.001217253423791967,
+    "margin": 0.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2078,
+    "BORDER_MISS": 444,
+    "NO_BORDER": 630
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3724,
+   "score": 1.2539419637277582,
+   "components": {
+    "noread": 0.9879162191192267,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.007086437090998644,
+    "margin": 0.20827508687677387
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 2381,
+    "UNCORRECTABLE": 267,
+    "BORDER_MISS": 1031
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3149,
+   "score": 1.2527176058339862,
+   "components": {
+    "noread": 1.0,
+    "wrong": 0.0,
+    "latency": 0.26054200000000005,
+    "geometry": 1.0,
+    "uncertainty": 0.0012184116679723582,
+    "margin": 0.0
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2011,
+    "NO_BORDER": 680,
+    "BORDER_MISS": 458
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 235,
+   "score": 1.2505085807420284,
+   "components": {
+    "noread": 0.6936170212765957,
+    "wrong": 0.0,
+    "latency": 0.0916874999999997,
+    "geometry": 1.0,
+    "uncertainty": 0.11709291935708788,
+    "margin": 0.9333586659562965
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 129,
+    "BORDER_MISS": 33,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3220,
+   "score": 1.2388290223635574,
+   "components": {
+    "noread": 0.8009316770186335,
+    "wrong": 0.0,
+    "latency": 0.15584349999999958,
+    "geometry": 1.0,
+    "uncertainty": 0.02757636244127215,
+    "margin": 0.6431348804142925
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 246,
+    "UNCORRECTABLE": 2046,
+    "NO_BORDER": 287
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3690,
+   "score": 1.2334093005240954,
+   "components": {
+    "noread": 0.7975609756097561,
+    "wrong": 0.0,
+    "latency": 0.04011024999999968,
+    "geometry": 0.967192,
+    "uncertainty": 0.0259233923497017,
+    "margin": 0.7380872624649611
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2252,
+    "BORDER_MISS": 287,
+    "NO_BORDER": 404
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3715,
+   "score": 1.2228529051072514,
+   "components": {
+    "noread": 0.990578734858681,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.006291904396671051,
+    "margin": 0.09709406016745019
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 978,
+    "NO_BORDER": 2421,
+    "UNCORRECTABLE": 281
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3214,
+   "score": 1.2183617934196407,
+   "components": {
+    "noread": 0.8724331051649036,
+    "wrong": 0.0,
+    "latency": 0.34202999999999983,
+    "geometry": 1.0,
+    "uncertainty": 0.023070322596166593,
+    "margin": 0.21995842318884604
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2586,
+    "BORDER_MISS": 127,
+    "NO_BORDER": 91
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 2556,
+   "score": 1.2057730500891217,
+   "components": {
+    "noread": 0.9800469483568075,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.010929649867508356,
+    "margin": 0.0675375893285342
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 1530,
+    "NO_BORDER": 910,
+    "UNCORRECTABLE": 65
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3770,
+   "score": 1.1528550137466236,
+   "components": {
+    "noread": 0.8238726790450929,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.024315846871583724,
+    "margin": 0.3894147042191292
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 608,
+    "UNCORRECTABLE": 1855,
+    "NO_BORDER": 643
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3765,
+   "score": 1.1362121354161125,
+   "components": {
+    "noread": 0.8980079681274901,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.019341040717419905,
+    "margin": 0.09511215643304118
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 1023,
+    "NO_BORDER": 2002,
+    "UNCORRECTABLE": 356
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3286,
+   "score": 1.1356812834857881,
+   "components": {
+    "noread": 0.8767498478393183,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.022483037533461953,
+    "margin": 0.1589663895991297
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 1618,
+    "NO_BORDER": 820,
+    "UNCORRECTABLE": 443
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3744,
+   "score": 1.1348543590500686,
+   "components": {
+    "noread": 0.90625,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.018682244458571223,
+    "margin": 0.06421078940261014
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 370,
+    "NO_BORDER": 1996,
+    "BORDER_MISS": 1027
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 197,
+   "score": 1.1295533979559593,
+   "components": {
+    "noread": 0.7157360406091371,
+    "wrong": 0.0,
+    "latency": 0.1653859999999998,
+    "geometry": 1.0,
+    "uncertainty": 0.1250364892262624,
+    "margin": 0.3940730424456376
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 83,
+    "BORDER_MISS": 58
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 2984,
+   "score": 1.0876338591994168,
+   "components": {
+    "noread": 0.7054289544235925,
+    "wrong": 0.0,
+    "latency": 0.47849499999999967,
+    "geometry": 1.0,
+    "uncertainty": 0.03269472374990545,
+    "margin": 0.23386180966957154
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1818,
+    "NO_BORDER": 141,
+    "BORDER_MISS": 146
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3483,
+   "score": 1.0760997940641244,
+   "components": {
+    "noread": 0.6482917025552685,
+    "wrong": 0.0,
+    "latency": 0.49881099999999945,
+    "geometry": 0.919261,
+    "uncertainty": 0.03170017036978434,
+    "margin": 0.42781202107987937
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2171,
+    "BORDER_MISS": 66,
+    "NO_BORDER": 21
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3,
+   "score": 1.06987868869542,
+   "components": {
+    "noread": 0.33333333333333337,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.363112,
+    "uncertainty": 0.730848454477556,
+    "margin": 0.9949957604110284
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3295,
+   "score": 1.0696463808958165,
+   "components": {
+    "noread": 0.8427921092564492,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.024855294419589113,
+    "margin": 0.048088748098575704
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 1650,
+    "UNCORRECTABLE": 396,
+    "NO_BORDER": 731
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3815,
+   "score": 1.0661020782624677,
+   "components": {
+    "noread": 0.7680209698558322,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.026780040471802824,
+    "margin": 0.2823036272357801
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 540,
+    "UNCORRECTABLE": 1529,
+    "NO_BORDER": 861
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3762,
+   "score": 1.0620282647863706,
+   "components": {
+    "noread": 0.8248272195640617,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.024289779446525772,
+    "margin": 0.08352051833015352
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 1921,
+    "BORDER_MISS": 566,
+    "UNCORRECTABLE": 616
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3705,
+   "score": 1.033821373999564,
+   "components": {
+    "noread": 0.7997300944669365,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.025767046388096237,
+    "margin": 0.0706925211285984
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 1333,
+    "UNCORRECTABLE": 709,
+    "BORDER_MISS": 921
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3169,
+   "score": 1.0337676113601486,
+   "components": {
+    "noread": 0.7172609656042916,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.0313434334652567,
+    "margin": 0.336116430077429
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1483,
+    "BORDER_MISS": 337,
+    "NO_BORDER": 453
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3727,
+   "score": 1.0232992248103194,
+   "components": {
+    "noread": 0.7950093909310437,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.025914758761088397,
+    "margin": 0.05110818166243785
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 684,
+    "NO_BORDER": 1317,
+    "BORDER_MISS": 962
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3730,
+   "score": 1.0190429756411432,
+   "components": {
+    "noread": 0.7916890080428954,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.026058461878337047,
+    "margin": 0.047749122196930754
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 1850,
+    "UNCORRECTABLE": 507,
+    "BORDER_MISS": 596
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3633,
+   "score": 1.0137614236593422,
+   "components": {
+    "noread": 0.6374896779521058,
+    "wrong": 0.0,
+    "latency": 0.5250389999999996,
+    "geometry": 1.0,
+    "uncertainty": 0.031248662259222848,
+    "margin": 0.18546538192541712
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 2007,
+    "NO_BORDER": 134,
+    "BORDER_MISS": 175
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3478,
+   "score": 0.9402935514930939,
+   "components": {
+    "noread": 0.5787809085681426,
+    "wrong": 0.0,
+    "latency": 0.29470499999999955,
+    "geometry": 1.0,
+    "uncertainty": 0.032801281525985604,
+    "margin": 0.28723667387319524
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1799,
+    "BORDER_MISS": 137,
+    "NO_BORDER": 77
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3190,
+   "score": 0.9348404326709033,
+   "components": {
+    "noread": 0.54858934169279,
+    "wrong": 0.0,
+    "latency": 0.26062949999999985,
+    "geometry": 0.972157,
+    "uncertainty": 0.03451703532070771,
+    "margin": 0.40811757772586504
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1682,
+    "BORDER_MISS": 51,
+    "NO_BORDER": 17
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 79,
+   "score": 0.9249513169472178,
+   "components": {
+    "noread": 0.5569620253164558,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.21400299540237272,
+    "margin": 0.2032926464319189
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 10,
+    "UNCORRECTABLE": 22,
+    "BORDER_MISS": 12
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 993,
+   "score": 0.9248198119107063,
+   "components": {
+    "noread": 0.47633434038267874,
+    "wrong": 0.0,
+    "latency": 0.08434799999999987,
+    "geometry": 0.798008,
+    "uncertainty": 0.06200831258790945,
+    "margin": 0.8033670507802428
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 318,
+    "NO_BORDER": 7,
+    "BORDER_MISS": 148
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2298,
+   "score": 0.917202013611436,
+   "components": {
+    "noread": 0.5378590078328982,
+    "wrong": 0.0,
+    "latency": 0.1706262500000002,
+    "geometry": 0.6216539999999999,
+    "uncertainty": 0.04073464555552908,
+    "margin": 0.6683987766692446
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1218,
+    "NO_BORDER": 3,
+    "BORDER_MISS": 15
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3621,
+   "score": 0.9031028564959045,
+   "components": {
+    "noread": 0.5208505937586302,
+    "wrong": 0.0,
+    "latency": 0.36674000000000007,
+    "geometry": 1.0,
+    "uncertainty": 0.03252565404027974,
+    "margin": 0.30880478572378134
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1553,
+    "BORDER_MISS": 235,
+    "NO_BORDER": 98
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 268,
+   "score": 0.8983357802886687,
+   "components": {
+    "noread": 0.5335820895522387,
+    "wrong": 0.0,
+    "latency": 0.14467425,
+    "geometry": 1.0,
+    "uncertainty": 0.11861029237959009,
+    "margin": 0.25504564848878297
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 76,
+    "BORDER_MISS": 67
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3718,
+   "score": 0.8838163754544539,
+   "components": {
+    "noread": 0.6503496503496504,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.03064163040912493,
+    "margin": 0.06048636633413678
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 772,
+    "UNCORRECTABLE": 964,
+    "NO_BORDER": 682
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3705,
+   "score": 0.8642417304202262,
+   "components": {
+    "noread": 0.6269905533063428,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.031128978849567,
+    "margin": 0.07228895896366618
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 982,
+    "NO_BORDER": 960,
+    "BORDER_MISS": 381
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 2992,
+   "score": 0.8577705602544868,
+   "components": {
+    "noread": 0.4872994652406417,
+    "wrong": 0.0,
+    "latency": 0.1707817499999995,
+    "geometry": 0.80321,
+    "uncertainty": 0.035797170954211754,
+    "margin": 0.5259138651224646
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1336,
+    "BORDER_MISS": 83,
+    "NO_BORDER": 39
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3721,
+   "score": 0.85044104020708,
+   "components": {
+    "noread": 0.6202633700618113,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.03117218569219604,
+    "margin": 0.04863859099723527
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 945,
+    "BORDER_MISS": 752,
+    "NO_BORDER": 611
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 976,
+   "score": 0.8412212128671718,
+   "components": {
+    "noread": 0.4456967213114754,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.6921379999999999,
+    "uncertainty": 0.06224490174342079,
+    "margin": 0.7532481356132865
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 142,
+    "UNCORRECTABLE": 285,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3737,
+   "score": 0.8272299489342396,
+   "components": {
+    "noread": 0.6031576130586032,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.990735,
+    "uncertainty": 0.031356514539334746,
+    "margin": 0.03415692868656313
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 998,
+    "BORDER_MISS": 415,
+    "UNCORRECTABLE": 841
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 81,
+   "score": 0.807473140299322,
+   "components": {
+    "noread": 0.4691358024691358,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.21239908135983576,
+    "margin": 0.10712599050089434
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 11,
+    "BORDER_MISS": 10,
+    "UNCORRECTABLE": 17
+   }
+  },
+  {
+   "stratum": "S10",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2279,
+   "score": 0.8045900705301577,
+   "components": {
+    "noread": 0.42518648530057046,
+    "wrong": 0.0,
+    "latency": 0.13933899999999988,
+    "geometry": 0.66944,
+    "uncertainty": 0.04056035899461041,
+    "margin": 0.657892019107607
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 941,
+    "NO_BORDER": 7,
+    "BORDER_MISS": 21
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3301,
+   "score": 0.793239541534965,
+   "components": {
+    "noread": 0.48954862162980917,
+    "wrong": 0.0,
+    "latency": 0.0891599999999999,
+    "geometry": 0.772394,
+    "uncertainty": 0.03408615295059114,
+    "margin": 0.38112347809953423
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1349,
+    "NO_BORDER": 146,
+    "BORDER_MISS": 121
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3661,
+   "score": 0.7879384799741227,
+   "components": {
+    "noread": 0.48702540289538376,
+    "wrong": 0.0,
+    "latency": 0.07903499999999997,
+    "geometry": 0.805646,
+    "uncertainty": 0.03236490829755928,
+    "margin": 0.3593147430998645
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1507,
+    "NO_BORDER": 111,
+    "BORDER_MISS": 165
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3779,
+   "score": 0.7489060131452023,
+   "components": {
+    "noread": 0.4913998412278381,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 1.0,
+    "uncertainty": 0.031862132072467464,
+    "margin": 0.13858368627043488
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1104,
+    "NO_BORDER": 351,
+    "BORDER_MISS": 402
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3465,
+   "score": 0.6850455533402459,
+   "components": {
+    "noread": 0.48744588744588746,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.755474,
+    "uncertainty": 0.03326741679693118,
+    "margin": 0.09957052498630957
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1082,
+    "BORDER_MISS": 462,
+    "NO_BORDER": 145
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 2973,
+   "score": 0.6821490497255841,
+   "components": {
+    "noread": 0.39589640094180967,
+    "wrong": 0.0,
+    "latency": 0.11737799999999998,
+    "geometry": 1.0,
+    "uncertainty": 0.03513657453691743,
+    "margin": 0.15069587171771914
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1022,
+    "BORDER_MISS": 92,
+    "NO_BORDER": 63
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3686,
+   "score": 0.667099142387398,
+   "components": {
+    "noread": 0.46418882257189364,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.803191,
+    "uncertainty": 0.03218315545917183,
+    "margin": 0.087268473619728
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 935,
+    "NO_BORDER": 502,
+    "BORDER_MISS": 274
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3462,
+   "score": 0.6515846911157777,
+   "components": {
+    "noread": 0.3266897746967071,
+    "wrong": 0.0,
+    "latency": 0.2460579999999999,
+    "geometry": 0.972296,
+    "uncertainty": 0.03123071873447736,
+    "margin": 0.2186958568394397
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 74,
+    "BORDER_MISS": 250,
+    "UNCORRECTABLE": 807
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 934,
+   "score": 0.6446578386434398,
+   "components": {
+    "noread": 0.3693790149892934,
+    "wrong": 0.0,
+    "latency": 0.06100324999999973,
+    "geometry": 0.915538,
+    "uncertainty": 0.06178724493267218,
+    "margin": 0.16358983729270135
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 243,
+    "BORDER_MISS": 98,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3723,
+   "score": 0.6432008358394768,
+   "components": {
+    "noread": 0.3897394574268064,
+    "wrong": 0.0,
+    "latency": 0.002905999999999187,
+    "geometry": 0.694842,
+    "uncertainty": 0.03131582819349488,
+    "margin": 0.3275128810530773
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 1178,
+    "NO_BORDER": 138,
+    "BORDER_MISS": 135
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3348,
+   "score": 0.6341167718214197,
+   "components": {
+    "noread": 0.3853046594982079,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.8916120000000001,
+    "uncertainty": 0.032952036941056306,
+    "margin": 0.1800456461756122
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 249,
+    "NO_BORDER": 275,
+    "UNCORRECTABLE": 766
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 2381,
+   "score": 0.6225947270916212,
+   "components": {
+    "noread": 0.3666526669466611,
+    "wrong": 0.0,
+    "latency": 0.17428500000000002,
+    "geometry": 0.642582,
+    "uncertainty": 0.03868329938809323,
+    "margin": 0.2440900348363784
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 688,
+    "BORDER_MISS": 136,
+    "NO_BORDER": 49
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3371,
+   "score": 0.6097568035616252,
+   "components": {
+    "noread": 0.43073272026105014,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.761787,
+    "uncertainty": 0.03341321600877567,
+    "margin": 0.03320025098729093
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 494,
+    "UNCORRECTABLE": 835,
+    "NO_BORDER": 123
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3726,
+   "score": 0.5887424376909322,
+   "components": {
+    "noread": 0.4057971014492754,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.752796,
+    "uncertainty": 0.03151831449479259,
+    "margin": 0.0554232633142017
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 625,
+    "NO_BORDER": 300,
+    "BORDER_MISS": 587
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3729,
+   "score": 0.5817422791723227,
+   "components": {
+    "noread": 0.40144810941271114,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.7784629999999999,
+    "uncertainty": 0.03145089136372414,
+    "margin": 0.02958708025916517
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 744,
+    "NO_BORDER": 485,
+    "BORDER_MISS": 268
+   }
+  },
+  {
+   "stratum": "S09",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3697,
+   "score": 0.5667376457944678,
+   "components": {
+    "noread": 0.38436570192047603,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.773688,
+    "uncertainty": 0.03134543490732633,
+    "margin": 0.039872088067762025
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 549,
+    "BORDER_MISS": 589,
+    "NO_BORDER": 283
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3766,
+   "score": 0.5662636947444986,
+   "components": {
+    "noread": 0.3574083908656399,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.837492,
+    "uncertainty": 0.030597506031279753,
+    "margin": 0.08686050287739563
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 384,
+    "BORDER_MISS": 283,
+    "UNCORRECTABLE": 679
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3033,
+   "score": 0.5602734730383925,
+   "components": {
+    "noread": 0.3610286844708209,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.791148,
+    "uncertainty": 0.034166583804131845,
+    "margin": 0.07977298888501903
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 980,
+    "BORDER_MISS": 107,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2839,
+   "score": 0.5601314013391469,
+   "components": {
+    "noread": 0.3395561817541388,
+    "wrong": 0.0,
+    "latency": 0.08198749999999988,
+    "geometry": 0.842188,
+    "uncertainty": 0.034818431747117407,
+    "margin": 0.06110301237149786
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 908,
+    "BORDER_MISS": 56
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 2422,
+   "score": 0.5458713425093811,
+   "components": {
+    "noread": 0.17299752270850532,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.714354,
+    "uncertainty": 0.030121533701926495,
+    "margin": 0.7164741764997082
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 388,
+    "BORDER_MISS": 28,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2128,
+   "score": 0.5251884729814329,
+   "components": {
+    "noread": 0.2645676691729323,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.662982,
+    "uncertainty": 0.03745862386122867,
+    "margin": 0.36431697292628756
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 340,
+    "BORDER_MISS": 208,
+    "NO_BORDER": 15
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 1648,
+   "score": 0.5151964317413734,
+   "components": {
+    "noread": 0.28883495145631066,
+    "wrong": 0.0,
+    "latency": 0.15400499999999995,
+    "geometry": 0.68328,
+    "uncertainty": 0.043723364855801305,
+    "margin": 0.12347599285720702
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 467,
+    "BORDER_MISS": 7,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2314,
+   "score": 0.5001738810518904,
+   "components": {
+    "noread": 0.2796024200518582,
+    "wrong": 0.0,
+    "latency": 0.07530349999999997,
+    "geometry": 0.578171,
+    "uncertainty": 0.03654934354687844,
+    "margin": 0.2386729640886432
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 539,
+    "BORDER_MISS": 81,
+    "NO_BORDER": 27
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3125,
+   "score": 0.5000973681957953,
+   "components": {
+    "noread": 0.31584,
+    "wrong": 0.0,
+    "latency": 0.011585999999999208,
+    "geometry": 0.784126,
+    "uncertainty": 0.03257921028675259,
+    "margin": 0.02941787684139706
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 885,
+    "BORDER_MISS": 93,
+    "NO_BORDER": 9
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 715,
+   "score": 0.4981806207126248,
+   "components": {
+    "noread": 0.25314685314685315,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.874233,
+    "uncertainty": 0.06362665528179967,
+    "margin": 0.12791279974957276
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 126,
+    "BORDER_MISS": 54,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S04",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2923,
+   "score": 0.4967687578763467,
+   "components": {
+    "noread": 0.28053369825521723,
+    "wrong": 0.0,
+    "latency": 0.09483799999999998,
+    "geometry": 0.84771,
+    "uncertainty": 0.032556989318748286,
+    "margin": 0.03815654987251804
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 758,
+    "BORDER_MISS": 57,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S11",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2273,
+   "score": 0.494763447765462,
+   "components": {
+    "noread": 0.22525296964364272,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.697894,
+    "uncertainty": 0.03433091104158037,
+    "margin": 0.375887408670097
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 290,
+    "BORDER_MISS": 207,
+    "NO_BORDER": 15
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3360,
+   "score": 0.4918578280249808,
+   "components": {
+    "noread": 0.2717261904761905,
+    "wrong": 0.0,
+    "latency": 0.056878499999998944,
+    "geometry": 0.629367,
+    "uncertainty": 0.030070365828102075,
+    "margin": 0.22615784878246475
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 725,
+    "BORDER_MISS": 87,
+    "NO_BORDER": 101
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3687,
+   "score": 0.46564675239525044,
+   "components": {
+    "noread": 0.2948196365608896,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.654176,
+    "uncertainty": 0.029423169985063113,
+    "margin": 0.08426776947276421
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 667,
+    "NO_BORDER": 265,
+    "BORDER_MISS": 155
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3028,
+   "score": 0.46356580982896656,
+   "components": {
+    "noread": 0.24702774108322323,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.722268,
+    "uncertainty": 0.030710142642119687,
+    "margin": 0.18909799141561165
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 623,
+    "BORDER_MISS": 83,
+    "NO_BORDER": 42
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 2249,
+   "score": 0.4540111254936325,
+   "components": {
+    "noread": 0.14939973321476208,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.6162730000000001,
+    "uncertainty": 0.02946512571355142,
+    "margin": 0.555414098073649
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 307,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 7
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3306,
+   "score": 0.45298983407273846,
+   "components": {
+    "noread": 0.23895946763460374,
+    "wrong": 0.0,
+    "latency": 0.12349125000000005,
+    "geometry": 0.631052,
+    "uncertainty": 0.029062630402111322,
+    "margin": 0.1619680041235967
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 695,
+    "BORDER_MISS": 73,
+    "NO_BORDER": 22
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3363,
+   "score": 0.4413429719766918,
+   "components": {
+    "noread": 0.19179304192685098,
+    "wrong": 0.0,
+    "latency": 0.10545499999999985,
+    "geometry": 0.915126,
+    "uncertainty": 0.02660702064095455,
+    "margin": 0.10710073243121189
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 45,
+    "UNCORRECTABLE": 585,
+    "NO_BORDER": 15
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3409,
+   "score": 0.4332055067156864,
+   "components": {
+    "noread": 0.24435318275154005,
+    "wrong": 0.0,
+    "latency": 0.029018999999999906,
+    "geometry": 0.611432,
+    "uncertainty": 0.02883865182348333,
+    "margin": 0.15447599350801575
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 704,
+    "BORDER_MISS": 70,
+    "NO_BORDER": 59
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3581,
+   "score": 0.4303801568105566,
+   "components": {
+    "noread": 0.24993018709857584,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.7448,
+    "uncertainty": 0.028351818400089934,
+    "margin": 0.05771353503978599
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 585,
+    "NO_BORDER": 124,
+    "BORDER_MISS": 186
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3713,
+   "score": 0.39882692835587247,
+   "components": {
+    "noread": 0.24212227309453271,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.65993,
+    "uncertainty": 0.027547952782066787,
+    "margin": 0.036482262901021
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 292,
+    "UNCORRECTABLE": 432,
+    "BORDER_MISS": 175
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3156,
+   "score": 0.3935648267276624,
+   "components": {
+    "noread": 0.21673003802281365,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.628199,
+    "uncertainty": 0.028739914842118575,
+    "margin": 0.1227501042792983
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 484,
+    "BORDER_MISS": 168,
+    "NO_BORDER": 32
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 2490,
+   "score": 0.39310184400800213,
+   "components": {
+    "noread": 0.2068273092369478,
+    "wrong": 0.0,
+    "latency": 0.013266999999999918,
+    "geometry": 0.556316,
+    "uncertainty": 0.03180582471015492,
+    "margin": 0.18818340805325623
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 448,
+    "BORDER_MISS": 52,
+    "NO_BORDER": 15
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3001,
+   "score": 0.39214666499107653,
+   "components": {
+    "noread": 0.18560479840053312,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.838432,
+    "uncertainty": 0.027813840878201823,
+    "margin": 0.0831618205048082
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 442,
+    "NO_BORDER": 41,
+    "BORDER_MISS": 74
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2128,
+   "score": 0.39147692174657955,
+   "components": {
+    "noread": 0.21663533834586468,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.642924,
+    "uncertainty": 0.034989064590386754,
+    "margin": 0.09587417035173822
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 440,
+    "BORDER_MISS": 16,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3381,
+   "score": 0.3884955587660184,
+   "components": {
+    "noread": 0.20970127181307308,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.690372,
+    "uncertainty": 0.027436605288431393,
+    "margin": 0.09000528102909863
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 409,
+    "NO_BORDER": 168,
+    "BORDER_MISS": 132
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3183,
+   "score": 0.3873330249137377,
+   "components": {
+    "noread": 0.20169651272384548,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.6803349999999999,
+    "uncertainty": 0.027872483980349916,
+    "margin": 0.11877756733239093
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 515,
+    "NO_BORDER": 41,
+    "BORDER_MISS": 86
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 2173,
+   "score": 0.3726971105996244,
+   "components": {
+    "noread": 0.20202485043718366,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.636988,
+    "uncertainty": 0.03374991757732371,
+    "margin": 0.08799900457926299
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 415,
+    "BORDER_MISS": 21,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3278,
+   "score": 0.370509904451825,
+   "components": {
+    "noread": 0.19463087248322153,
+    "wrong": 0.0,
+    "latency": 0.13367474999999995,
+    "geometry": 0.567406,
+    "uncertainty": 0.027100281226166034,
+    "margin": 0.073709137851735
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 601,
+    "BORDER_MISS": 26,
+    "NO_BORDER": 11
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 1112,
+   "score": 0.3674166950880824,
+   "components": {
+    "noread": 0.18255395683453235,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.657246,
+    "uncertainty": 0.04538436344484764,
+    "margin": 0.10240452177042063
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 180,
+    "BORDER_MISS": 20,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 2339,
+   "score": 0.36057416916074003,
+   "components": {
+    "noread": 0.19837537409149208,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.570554,
+    "uncertainty": 0.03231019962813253,
+    "margin": 0.10644298418393885
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 123,
+    "UNCORRECTABLE": 309,
+    "NO_BORDER": 32
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 2266,
+   "score": 0.3423335581916852,
+   "components": {
+    "noread": 0.17431597528684906,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.61892,
+    "uncertainty": 0.0312339220362976,
+    "margin": 0.0953887396222911
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 368,
+    "NO_BORDER": 5,
+    "BORDER_MISS": 22
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3065,
+   "score": 0.3372272733324418,
+   "components": {
+    "noread": 0.15791190864600324,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.733042,
+    "uncertainty": 0.02581761635897606,
+    "margin": 0.06599385502316849
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 354,
+    "BORDER_MISS": 91,
+    "NO_BORDER": 39
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3191,
+   "score": 0.33378467649945803,
+   "components": {
+    "noread": 0.1776872453776246,
+    "wrong": 0.0,
+    "latency": 0.006219999999999892,
+    "geometry": 0.5786,
+    "uncertainty": 0.026520739427035256,
+    "margin": 0.08624353802771959
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 80,
+    "UNCORRECTABLE": 429,
+    "BORDER_MISS": 58
+   }
+  },
+  {
+   "stratum": "S12",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3195,
+   "score": 0.33301199585577945,
+   "components": {
+    "noread": 0.15399061032863848,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.734892,
+    "uncertainty": 0.025029717670858265,
+    "margin": 0.06509375563903948
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 86,
+    "NO_BORDER": 42,
+    "UNCORRECTABLE": 364
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3465,
+   "score": 0.3270453367492223,
+   "components": {
+    "noread": 0.16883116883116878,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.526936,
+    "uncertainty": 0.02494276870267509,
+    "margin": 0.13451861188905329
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 499,
+    "NO_BORDER": 28,
+    "BORDER_MISS": 58
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3218,
+   "score": 0.32339850660246805,
+   "components": {
+    "noread": 0.17153511497824736,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.554402,
+    "uncertainty": 0.026045700807891814,
+    "margin": 0.0932004707342493
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 393,
+    "BORDER_MISS": 141,
+    "NO_BORDER": 18
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3531,
+   "score": 0.3217372832308062,
+   "components": {
+    "noread": 0.1396205041064854,
+    "wrong": 0.0,
+    "latency": 0.009724999999999984,
+    "geometry": 0.772708,
+    "uncertainty": 0.022864816677533373,
+    "margin": 0.04732590261851349
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 417,
+    "BORDER_MISS": 59,
+    "NO_BORDER": 17
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2476,
+   "score": 0.31598392621677973,
+   "components": {
+    "noread": 0.14943457189014542,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.615784,
+    "uncertainty": 0.028084748024365114,
+    "margin": 0.09783393438150582
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 355,
+    "BORDER_MISS": 7,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3395,
+   "score": 0.3140707639757075,
+   "components": {
+    "noread": 0.14226804123711345,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.6701349999999999,
+    "uncertainty": 0.023501702998094176,
+    "margin": 0.08674957079848977
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 282,
+    "BORDER_MISS": 170,
+    "NO_BORDER": 31
+   }
+  },
+  {
+   "stratum": "S18",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3401,
+   "score": 0.3040276544931384,
+   "components": {
+    "noread": 0.15319023816524546,
+    "wrong": 0.0,
+    "latency": 0.05628499999999992,
+    "geometry": 0.582022,
+    "uncertainty": 0.02420834766240687,
+    "margin": 0.0369061416556315
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 433,
+    "BORDER_MISS": 69,
+    "NO_BORDER": 19
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3240,
+   "score": 0.30336612431048376,
+   "components": {
+    "noread": 0.1317901234567901,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.663211,
+    "uncertainty": 0.023297351792626264,
+    "margin": 0.0909504165246016
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 403,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 1806,
+   "score": 0.3022250407532916,
+   "components": {
+    "noread": 0.12513842746400883,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.693219,
+    "uncertainty": 0.030529073492771897,
+    "margin": 0.07726092180965603
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 206,
+    "BORDER_MISS": 15,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 2350,
+   "score": 0.29685001678432577,
+   "components": {
+    "noread": 0.1370212765957447,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.501182,
+    "uncertainty": 0.027808530321343117,
+    "margin": 0.1522935834263651
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 285,
+    "BORDER_MISS": 31,
+    "NO_BORDER": 6
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3209,
+   "score": 0.29273061054931304,
+   "components": {
+    "noread": 0.1551885322530383,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.508831,
+    "uncertainty": 0.02505408105055773,
+    "margin": 0.07749612590331956
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 331,
+    "BORDER_MISS": 148,
+    "NO_BORDER": 19
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3673,
+   "score": 0.28648299282233636,
+   "components": {
+    "noread": 0.14130138851075413,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.607951,
+    "uncertainty": 0.022530699231938955,
+    "margin": 0.0410868489853758
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 270,
+    "NO_BORDER": 127,
+    "BORDER_MISS": 122
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3109,
+   "score": 0.28543736793248375,
+   "components": {
+    "noread": 0.14892248311354128,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.49376,
+    "uncertainty": 0.02502791781761915,
+    "margin": 0.08416308636710969
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 300,
+    "BORDER_MISS": 143,
+    "NO_BORDER": 20
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 2060,
+   "score": 0.28247588947081304,
+   "components": {
+    "noread": 0.1310679611650486,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5739099999999999,
+    "uncertainty": 0.029151680993976026,
+    "margin": 0.07350029269592147
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 28,
+    "UNCORRECTABLE": 238,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3049,
+   "score": 0.2804117319559315,
+   "components": {
+    "noread": 0.10331256149557233,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5725750000000001,
+    "uncertainty": 0.02161656650845578,
+    "margin": 0.17258629068710413
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 288,
+    "BORDER_MISS": 19,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3370,
+   "score": 0.2749170659870381,
+   "components": {
+    "noread": 0.12581602373887235,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.586558,
+    "uncertainty": 0.022397506231885744,
+    "margin": 0.06863563044074272
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 274,
+    "NO_BORDER": 60,
+    "BORDER_MISS": 90
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 2418,
+   "score": 0.2731906443849851,
+   "components": {
+    "noread": 0.12655086848635233,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.541766,
+    "uncertainty": 0.0265088413830441,
+    "margin": 0.0834405173570357
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 212,
+    "BORDER_MISS": 80,
+    "NO_BORDER": 14
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3049,
+   "score": 0.27176030461916817,
+   "components": {
+    "noread": 0.1308625778943916,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5443,
+    "uncertainty": 0.02394445903927589,
+    "margin": 0.06688499068379546
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 369,
+    "NO_BORDER": 8,
+    "BORDER_MISS": 22
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3348,
+   "score": 0.26763826691487286,
+   "components": {
+    "noread": 0.12037037037037035,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.576713,
+    "uncertainty": 0.022048779426770748,
+    "margin": 0.06966968943705701
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 184,
+    "UNCORRECTABLE": 197,
+    "NO_BORDER": 22
+   }
+  },
+  {
+   "stratum": "S13",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3355,
+   "score": 0.26087610163669184,
+   "components": {
+    "noread": 0.1201192250372578,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5484,
+    "uncertainty": 0.022005960958411563,
+    "margin": 0.06691298706742745
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 255,
+    "BORDER_MISS": 81,
+    "NO_BORDER": 67
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 1269,
+   "score": 0.25771666833744483,
+   "components": {
+    "noread": 0.0843183609141056,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.686574,
+    "uncertainty": 0.03063275067664528,
+    "margin": 0.06922377361672191
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 91,
+    "BORDER_MISS": 14,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 2913,
+   "score": 0.25475887140090503,
+   "components": {
+    "noread": 0.09852385856505319,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.567165,
+    "uncertainty": 0.021656480213203322,
+    "margin": 0.10657924243083386
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 270,
+    "BORDER_MISS": 15,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 2039,
+   "score": 0.2545870380264171,
+   "components": {
+    "noread": 0.09416380578715056,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.657492,
+    "uncertainty": 0.025375501307538295,
+    "margin": 0.05412360528499137
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 15,
+    "UNCORRECTABLE": 174,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3495,
+   "score": 0.2543724494971704,
+   "components": {
+    "noread": 0.12360515021459229,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.483384,
+    "uncertainty": 0.02182708418918855,
+    "margin": 0.07725652395994625
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 403,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 7
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3300,
+   "score": 0.2540707433252919,
+   "components": {
+    "noread": 0.10363636363636364,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.57936,
+    "uncertainty": 0.020806223567912285,
+    "margin": 0.08053089301657372
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 317,
+    "BORDER_MISS": 21,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3076,
+   "score": 0.2505817767652919,
+   "components": {
+    "noread": 0.10565669700910274,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.563726,
+    "uncertainty": 0.021735008873545958,
+    "margin": 0.07104125106472077
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 306,
+    "BORDER_MISS": 15,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 2984,
+   "score": 0.2488274562540799,
+   "components": {
+    "noread": 0.10254691689008044,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.55412,
+    "uncertainty": 0.02177936331948649,
+    "margin": 0.08188952568085414
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 281,
+    "BORDER_MISS": 23,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3025,
+   "score": 0.24811096542670197,
+   "components": {
+    "noread": 0.10082644628099169,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5741069999999999,
+    "uncertainty": 0.02147001303465923,
+    "margin": 0.07242704209460223
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 278,
+    "BORDER_MISS": 27
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 2138,
+   "score": 0.24441552159889585,
+   "components": {
+    "noread": 0.08465855940130962,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.653632,
+    "uncertainty": 0.023625265655794703,
+    "margin": 0.05739309789896294
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 156,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2419,
+   "score": 0.24227553297029597,
+   "components": {
+    "noread": 0.09384042992972308,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.515762,
+    "uncertainty": 0.02325839907805549,
+    "margin": 0.11217834500515039
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 19,
+    "UNCORRECTABLE": 203,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S15",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3198,
+   "score": 0.241626478159374,
+   "components": {
+    "noread": 0.09943714821763605,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.603448,
+    "uncertainty": 0.02075275775464558,
+    "margin": 0.037077836881383795
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 173,
+    "NO_BORDER": 65,
+    "BORDER_MISS": 80
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2931,
+   "score": 0.2397761163198599,
+   "components": {
+    "noread": 0.09996588195155243,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.548004,
+    "uncertainty": 0.021729318031192824,
+    "margin": 0.06448258450903686
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 265,
+    "BORDER_MISS": 19,
+    "NO_BORDER": 9
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3032,
+   "score": 0.23909146414687227,
+   "components": {
+    "noread": 0.09762532981530347,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.554564,
+    "uncertainty": 0.02114061670768974,
+    "margin": 0.06661008659241317
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 273,
+    "BORDER_MISS": 19,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2906,
+   "score": 0.23813459871074277,
+   "components": {
+    "noread": 0.1028905712319339,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5212380000000001,
+    "uncertainty": 0.022102587993839018,
+    "margin": 0.06648377827296445
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 269,
+    "BORDER_MISS": 26,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3287,
+   "score": 0.23793049599843039,
+   "components": {
+    "noread": 0.10587161545482204,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.528069,
+    "uncertainty": 0.021044076322076277,
+    "margin": 0.05307680794190066
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 183,
+    "BORDER_MISS": 149,
+    "NO_BORDER": 16
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3012,
+   "score": 0.23752341984269773,
+   "components": {
+    "noread": 0.09694555112881809,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.537317,
+    "uncertainty": 0.021144985229620383,
+    "margin": 0.07513992033023145
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 260,
+    "BORDER_MISS": 28,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3064,
+   "score": 0.2372299830703518,
+   "components": {
+    "noread": 0.09954308093994779,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.539793,
+    "uncertainty": 0.021212143889729917,
+    "margin": 0.0637407672851302
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 281,
+    "BORDER_MISS": 23,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 2900,
+   "score": 0.2349220965290051,
+   "components": {
+    "noread": 0.09482758620689657,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.532754,
+    "uncertainty": 0.021338964865880383,
+    "margin": 0.07624742629722775
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 248,
+    "BORDER_MISS": 21,
+    "NO_BORDER": 6
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3028,
+   "score": 0.23395416811887262,
+   "components": {
+    "noread": 0.09379128137384407,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.571276,
+    "uncertainty": 0.020780389127035725,
+    "margin": 0.051724973938368946
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 271,
+    "BORDER_MISS": 10,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S17",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3235,
+   "score": 0.23368536368862797,
+   "components": {
+    "noread": 0.10417310664605872,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.520355,
+    "uncertainty": 0.02106226505552522,
+    "margin": 0.04970041504935532
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 151,
+    "UNCORRECTABLE": 166,
+    "NO_BORDER": 20
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 2522,
+   "score": 0.23215513625873738,
+   "components": {
+    "noread": 0.08881839809674863,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.554566,
+    "uncertainty": 0.022223774234731763,
+    "margin": 0.07103883681540961
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 172,
+    "BORDER_MISS": 43,
+    "NO_BORDER": 9
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 2993,
+   "score": 0.22882409743337812,
+   "components": {
+    "noread": 0.08954226528566656,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.543386,
+    "uncertainty": 0.020472203875431916,
+    "margin": 0.06789510069998521
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 252,
+    "BORDER_MISS": 15,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S07",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3202,
+   "score": 0.22836531850883665,
+   "components": {
+    "noread": 0.0774515927545284,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.652504,
+    "uncertainty": 0.01853386713745886,
+    "margin": 0.03715330728526271
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 217,
+    "BORDER_MISS": 30,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 2939,
+   "score": 0.22795279075942165,
+   "components": {
+    "noread": 0.09084722694794145,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5359020000000001,
+    "uncertainty": 0.02079422255809149,
+    "margin": 0.0650935084414482
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 244,
+    "BORDER_MISS": 18,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 2972,
+   "score": 0.2278034282873324,
+   "components": {
+    "noread": 0.09454912516823688,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5256620000000001,
+    "uncertainty": 0.021050964203039424,
+    "margin": 0.05865473672525267
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 245,
+    "BORDER_MISS": 33,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 2340,
+   "score": 0.22778247753663888,
+   "components": {
+    "noread": 0.07136752136752134,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.65654,
+    "uncertainty": 0.02089154664643078,
+    "margin": 0.04887060948634046
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 138,
+    "NO_BORDER": 6,
+    "BORDER_MISS": 23
+   }
+  },
+  {
+   "stratum": "S14",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2520,
+   "score": 0.22769598702262572,
+   "components": {
+    "noread": 0.07499999999999996,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.649992,
+    "uncertainty": 0.020592419346989965,
+    "margin": 0.04133792449710258
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 5,
+    "UNCORRECTABLE": 163,
+    "BORDER_MISS": 21
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 2059,
+   "score": 0.20647765089086936,
+   "components": {
+    "noread": 0.0616804273919378,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.613688,
+    "uncertainty": 0.02082727548316865,
+    "margin": 0.03881995252449079
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 106,
+    "BORDER_MISS": 16,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3056,
+   "score": 0.19939292260311672,
+   "components": {
+    "noread": 0.04417539267015702,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.620366,
+    "uncertainty": 0.014606471094992246,
+    "margin": 0.07947031461821191
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 110,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S19",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3079,
+   "score": 0.19660812748881845,
+   "components": {
+    "noread": 0.05943488145501785,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.577288,
+    "uncertainty": 0.016728426141477737,
+    "margin": 0.04450477654353913
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 24,
+    "UNCORRECTABLE": 156,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3112,
+   "score": 0.1936103416771487,
+   "components": {
+    "noread": 0.05430591259640105,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.598302,
+    "uncertainty": 0.015952264689923945,
+    "margin": 0.03889298911928554
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 137,
+    "BORDER_MISS": 28,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3096,
+   "score": 0.19075962673895022,
+   "components": {
+    "noread": 0.0513565891472868,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.6223,
+    "uncertainty": 0.015579978756470103,
+    "margin": 0.023843494044761143
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 34,
+    "NO_BORDER": 1,
+    "UNCORRECTABLE": 124
+   }
+  },
+  {
+   "stratum": "S08",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3128,
+   "score": 0.18986854758237307,
+   "components": {
+    "noread": 0.05338874680306904,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.587,
+    "uncertainty": 0.015784744946186313,
+    "margin": 0.037291427687369545
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 136,
+    "BORDER_MISS": 27,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3040,
+   "score": 0.18881101632763467,
+   "components": {
+    "noread": 0.05592105263157898,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5737669999999999,
+    "uncertainty": 0.016363649741635955,
+    "margin": 0.03318246275079235
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 136,
+    "BORDER_MISS": 26,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3566,
+   "score": 0.18863651330414602,
+   "components": {
+    "noread": 0.07038698822209755,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5085569999999999,
+    "uncertainty": 0.016807728654083087,
+    "margin": 0.027114202516689747
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 181,
+    "BORDER_MISS": 50,
+    "NO_BORDER": 20
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3040,
+   "score": 0.18842591223910357,
+   "components": {
+    "noread": 0.044736842105263186,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.60694,
+    "uncertainty": 0.014732834862412503,
+    "margin": 0.04978217567544717
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 108,
+    "BORDER_MISS": 23,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S02",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3086,
+   "score": 0.1870423995593688,
+   "components": {
+    "noread": 0.048606610499027814,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.616633,
+    "uncertainty": 0.015206315219091993,
+    "margin": 0.025020104835983284
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 126,
+    "BORDER_MISS": 22,
+    "NO_BORDER": 2
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3130,
+   "score": 0.18688418874672344,
+   "components": {
+    "noread": 0.049201277955271516,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.597669,
+    "uncertainty": 0.015185367377840597,
+    "margin": 0.03518809034177198
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 132,
+    "BORDER_MISS": 21,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3137,
+   "score": 0.18504755325651745,
+   "components": {
+    "noread": 0.045903729678036354,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.609416,
+    "uncertainty": 0.014679863277837546,
+    "margin": 0.03306897313187444
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 120,
+    "NO_BORDER": 4,
+    "BORDER_MISS": 20
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3086,
+   "score": 0.18475642376372958,
+   "components": {
+    "noread": 0.043097861309138064,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.624972,
+    "uncertainty": 0.014365935627677295,
+    "margin": 0.03160398213584289
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 112,
+    "NO_BORDER": 2,
+    "BORDER_MISS": 19
+   }
+  },
+  {
+   "stratum": "S16",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3103,
+   "score": 0.18438474268233415,
+   "components": {
+    "noread": 0.04447309055752502,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.613799,
+    "uncertainty": 0.01454104991451488,
+    "margin": 0.03293775722517229
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 115,
+    "NO_BORDER": 1,
+    "BORDER_MISS": 22
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2970,
+   "score": 0.18244406650172854,
+   "components": {
+    "noread": 0.04814814814814816,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.584988,
+    "uncertainty": 0.015432620852940726,
+    "margin": 0.03194002642370011
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 120,
+    "BORDER_MISS": 19,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 2458,
+   "score": 0.18050141176075857,
+   "components": {
+    "noread": 0.04393816110659077,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.554072,
+    "uncertainty": 0.016254859207142758,
+    "margin": 0.058738070168654746
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 85,
+    "BORDER_MISS": 20,
+    "NO_BORDER": 3
+   }
+  },
+  {
+   "stratum": "S06",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3267,
+   "score": 0.17837357234935627,
+   "components": {
+    "noread": 0.0446893174165901,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.59056,
+    "uncertainty": 0.014202257812689467,
+    "margin": 0.028237086754738138
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 19,
+    "UNCORRECTABLE": 119,
+    "NO_BORDER": 8
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 2981,
+   "score": 0.17784626423786368,
+   "components": {
+    "noread": 0.04495135860449517,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.581556,
+    "uncertainty": 0.014912326413437649,
+    "margin": 0.030425141422165607
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "NO_BORDER": 5,
+    "UNCORRECTABLE": 104,
+    "BORDER_MISS": 25
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 2989,
+   "score": 0.1778071842930758,
+   "components": {
+    "noread": 0.0448310471729676,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.5799639999999999,
+    "uncertainty": 0.014873394859911127,
+    "margin": 0.031822132300508746
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 111,
+    "BORDER_MISS": 18,
+    "NO_BORDER": 5
+   }
+  },
+  {
+   "stratum": "S05",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 2980,
+   "score": 0.17231698599493991,
+   "components": {
+    "noread": 0.042617449664429485,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.563904,
+    "uncertainty": 0.014543045591769,
+    "margin": 0.03215737844875307
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "BORDER_MISS": 26,
+    "UNCORRECTABLE": 100,
+    "NO_BORDER": 1
+   }
+  },
+  {
+   "stratum": "S03",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3417,
+   "score": 0.1686507854740199,
+   "components": {
+    "noread": 0.052970441908106514,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.489773,
+    "uncertainty": 0.015044556872950698,
+    "margin": 0.0340115504314601
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 150,
+    "BORDER_MISS": 27,
+    "NO_BORDER": 4
+   }
+  },
+  {
+   "stratum": "S20",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 2419,
+   "score": 0.15612729954634477,
+   "components": {
+    "noread": 0.03017775940471268,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.52637,
+    "uncertainty": 0.013705232323407257,
+    "margin": 0.04607641326642821
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 62,
+    "BORDER_MISS": 11
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0",
+   "sev_bin": 4,
+   "n_recoverable": 3510,
+   "score": 0.08505033841242016,
+   "components": {
+    "noread": 0.017663817663817638,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.27054500000000004,
+    "uncertainty": 0.00877443503369224,
+    "margin": 0.02963434410585459
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 62
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0.1",
+   "sev_bin": 4,
+   "n_recoverable": 3583,
+   "score": 0.07778152919063477,
+   "components": {
+    "noread": 0.008931063354730706,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.299064,
+    "uncertainty": 0.006246990574955147,
+    "margin": 0.0197139018280883
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 32
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0",
+   "sev_bin": 0,
+   "n_recoverable": 3745,
+   "score": 0.07708352457484821,
+   "components": {
+    "noread": 0.02082777036048067,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.23155,
+    "uncertainty": 0.009195414271550684,
+    "margin": 0.017826823595307323
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 77,
+    "BORDER_MISS": 1
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0",
+   "sev_bin": 2,
+   "n_recoverable": 3638,
+   "score": 0.07305309543944541,
+   "components": {
+    "noread": 0.017317207256734468,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.233362,
+    "uncertainty": 0.008534471688435241,
+    "margin": 0.015987507794977745
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 63
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0",
+   "sev_bin": 3,
+   "n_recoverable": 3554,
+   "score": 0.07221142615676611,
+   "components": {
+    "noread": 0.012380416432189123,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.252193,
+    "uncertainty": 0.007342760969288431,
+    "margin": 0.01907009746644259
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 44
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0",
+   "sev_bin": 1,
+   "n_recoverable": 3622,
+   "score": 0.07029913548477994,
+   "components": {
+    "noread": 0.014632799558255138,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.22717,
+    "uncertainty": 0.00788430014412489,
+    "margin": 0.02096728618154116
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 53
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0.1",
+   "sev_bin": 3,
+   "n_recoverable": 3619,
+   "score": 0.07000987611351601,
+   "components": {
+    "noread": 0.010776457584968258,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.259052,
+    "uncertainty": 0.0068037374333485,
+    "margin": 0.013403832706244997
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 39
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0.1",
+   "sev_bin": 1,
+   "n_recoverable": 3731,
+   "score": 0.0684745083006008,
+   "components": {
+    "noread": 0.008040739748056858,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.27162,
+    "uncertainty": 0.005817152643982526,
+    "margin": 0.010670640768508955
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 30
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0.1",
+   "sev_bin": 2,
+   "n_recoverable": 3686,
+   "score": 0.06683290122940883,
+   "components": {
+    "noread": 0.008952794357026561,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.252218,
+    "uncertainty": 0.006163951173443261,
+    "margin": 0.014515104285535447
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 33
+   }
+  },
+  {
+   "stratum": "S01",
+   "profile": "P0.1",
+   "sev_bin": 0,
+   "n_recoverable": 3735,
+   "score": 0.06662317969994343,
+   "components": {
+    "noread": 0.0072289156626506035,
+    "wrong": 0.0,
+    "latency": 0.0,
+    "geometry": 0.265274,
+    "uncertainty": 0.005524478842862113,
+    "margin": 0.01192408205287251
+   },
+   "wrong_payloads": 0,
+   "mechanisms": {
+    "UNCORRECTABLE": 27
+   }
+  }
+ ]
+}

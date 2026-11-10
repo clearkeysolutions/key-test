@@ -1,0 +1,10 @@
+{
+ "problems": [],
+ "eta": {
+  "mean_case_seconds_single_core": 0.6473425195129999,
+  "workers": 8,
+  "structured_hours": 22.47717081642361,
+  "adaptive_hours": 11.238585408211804,
+  "holdout_hours": 2.247717081642361
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "adaptive_rules_sha256": "971866b2bf49def2488d6fa4147f2e12420721cd109272750201fc429ce0b611",
+ "frozen_at": "2026-11-09T07:18:10Z",
+ "report_json_sha256": "7151c5a873c7f43d5cd3e9b8a3a470072a2e81316f40f8e82d4ab5029374a94c",
+ "report_md_sha256": "2c5048d46fea0bc4e82cf2a70b199f08c5a260750344403f021d5e8f380e0c9e",
+ "results": {
+  "structured": {
+   "cases": 1000000,
+   "root_sha256": "53ca368f6a6450a5ac99fe03c37afbe4f9e7cc08ca1c75a22ec6661992e7c1d2",
+   "shards": 1000
+  }
+ },
+ "statement": "Structured results frozen and published before any adaptive case was selected."
+}

@@ -1,0 +1,8 @@
+{"from":"NEW","to":"BASELINE_LOCKED","time":"2026-11-08T05:57:47Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"gates approved by Caleb","evidence":{"lock_sha256":"2008a83a6e7b3e606fbb5a0ad135d89895c8ed14d93a979ad3eca365eef57470","signature":"/home/ckeyrunner/key-test/campaign/state/lock.json.sig"}}
+{"from":"BASELINE_LOCKED","to":"GENERATE","time":"2026-11-08T05:57:47Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{}}
+{"from":"GENERATE","to":"VALIDATE_ARTIFACT","time":"2026-11-08T05:58:24Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{"plans":{"pilot":10000,"structured":1000000,"holdout":100000}}}
+{"from":"VALIDATE_ARTIFACT","to":"EXECUTE","time":"2026-11-08T06:18:14Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{}}
+{"from":"EXECUTE","to":"CLASSIFY","time":"2026-11-09T07:16:30Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{"structured_completed":1000000}}
+{"from":"CLASSIFY","to":"REPORT_1M","time":"2026-11-09T07:18:14Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{"freeze_sha256":"d95e4c85b7e965f48c7990d486366d00c71897db5e7631ec798c94ae6dbf61d0","signature":"/home/ckeyrunner/key-test/campaign/reports/structured_1m.freeze.json.sig"}}
+{"from":"REPORT_1M","to":"SELECT_WEAKNESSES","time":"2026-11-09T07:18:58Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{"selection_sha256":"893d92cf3bc6393099a2649cc480408d7f3f53d9ff8ea2db5f68605194264e95"}}
+{"from":"SELECT_WEAKNESSES","to":"EXECUTE_500K","time":"2026-11-09T07:18:58Z","user":"ckeyrunner","host":"ubuntu-32gb-hel1-1","note":"","evidence":{}}

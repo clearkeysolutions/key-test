@@ -1,0 +1,48 @@
+{
+ "time": "2026-11-08T05:57:37Z",
+ "worker_config": {
+  "worker": "ckt-worker-v1",
+  "sim": "ckt-sim-v2",
+  "adapter": "ckt-adapter-v1(CKeyDecoder.swift@ede38f5)",
+  "recoverability": "recov-v2",
+  "prng": "ckt-prng-v1(xoshiro256**/splitmix64/fnv1a-stream)",
+  "schema": "ckt-case-v1",
+  "ckey_sha": "ede38f57aa1a20c456b1858f4fccd919e98ef269",
+  "harness_sha": "0217e28a27324ed739aef3f725797bd0e3865f38",
+  "ckey_software_version": "0.1.0-build.85",
+  "recov_thresholds": {
+   "unrecoverable": {
+    "ppm_min_lt": 1.0,
+    "dprime_lt": 1.0,
+    "mtf_contrast_lt": 0.01,
+    "byte_err_gt": "2*ecc",
+    "cropped": true
+   },
+   "marginal": {
+    "ppm_min_lt": 2.0,
+    "dprime_lt": 3.0,
+    "byte_err_gt": "ecc"
+   }
+  },
+  "build": {
+   "compiler": "GNU 15.2.0",
+   "build_type": "Release",
+   "sanitize": "OFF",
+   "system": "Linux x86_64"
+  }
+ },
+ "eta": {
+  "workers": 8,
+  "benchmark_cases": 96,
+  "wall_s": 9.6,
+  "cases_per_hour": 36183,
+  "structured_1m_hours": 27.6,
+  "adaptive_500k_hours": 13.8,
+  "pilot_10k_hours": 0.28,
+  "holdout_100k_hours": 2.8
+ },
+ "free_disk_gb": 228,
+ "estimated_disk_gb": 12,
+ "problems": [],
+ "ok": true
+}

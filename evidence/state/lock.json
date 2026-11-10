@@ -1,0 +1,68 @@
+{
+ "approval_statement": "Caleb approves the release gates in configs/gates.yaml (sha256 a53d0daec731f1034f967a12dd081902e76b5e5c6898e2245d2ed8390be64e63) and the pre-registered design before execution.",
+ "approver": "Caleb",
+ "case_schema_sha256": "41b72f188c4a6dae2024b2b6ef32b91601139a8862e7800a22e03bc25e7bb31f",
+ "ckey_commit": "ede38f57aa1a20c456b1858f4fccd919e98ef269",
+ "configs": {
+  "adaptive.yaml": "971866b2bf49def2488d6fa4147f2e12420721cd109272750201fc429ce0b611",
+  "baseline.yaml": "a5990ba3d111393887fc3987a6befe56ff2b7665813e5e99391b14bf81c7c5fd",
+  "devices.yaml": "0746585d9c040025a41ee4f7c2d06faeb3c50fe042af2b55acf74bb1ec0251a5",
+  "gates.yaml": "a53d0daec731f1034f967a12dd081902e76b5e5c6898e2245d2ed8390be64e63",
+  "strata.yaml": "008662372ee83e53b64fa62e2a29a0800bf3811f2573a43fea00005b6a511709"
+ },
+ "harness_commit": "0217e28a27324ed739aef3f725797bd0e3865f38",
+ "holdout_seed_commitment": "5b1ea0ccdaf5e4c4961df72c3480b32efe7d4d814009ab05d367dc1f452011f3",
+ "locked_at": "2026-11-08T05:57:47Z",
+ "qualifying": true,
+ "signing": "ssh-keygen ed25519",
+ "spec_files": {
+  "ios/CKeyReader/CameraScanner.swift": "f445edb493b832cd5dfae646a5687282d0e2c483fc7c42d64b8b80ba11fb55d0",
+  "sdk/swift/Sources/CKeyScanKit/CKeyDecoder.swift": "bd81dcc17a111ec1c281d6a20eca8f7f7a7498c613e883c648b8aa39e2f1c5ce",
+  "spec/CKey-Format-v0.14.0.md": "55913507bfbb173a7e38dbf2864edddf95bc15fca893631c72937de4e6f60b52",
+  "spec/CKey-Format-v0.25.0.md": "acb8d57c8e4959756ccb4aff9be3c9e633bf7e1659994fb6b059923b0209ed74",
+  "spec/CKey-Format-v0.26.0.md": "08837a6890d1284e0773af7ec2c8b67d9b7d0538ea98790c45edda743eba4313",
+  "spec/CKey-Format-v0.27.0.md": "01c4d14f4549c726a9a780e8a6c5844b16ac85fdc0b033b30aa4ebf686951d6c",
+  "spec/CKey-Format-v0.28.0.md": "87561e27494ab3f971ff7ec817dde4be0659bb6a6d1ff0e6673695f3c92308ca",
+  "spec/CKey-Printing.md": "48b4955e80754f7e089f34c3f19ea75f79ee3a70b8648b56960d968e94fb1f18"
+ },
+ "spec_id": "CKTEST-RH-001",
+ "test_scale": 1,
+ "toolchain": {
+  "cpus": 8,
+  "machine": "x86_64",
+  "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.43",
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
+ },
+ "worker_config": {
+  "adapter": "ckt-adapter-v1(CKeyDecoder.swift@ede38f5)",
+  "build": {
+   "build_type": "Release",
+   "compiler": "GNU 15.2.0",
+   "sanitize": "OFF",
+   "system": "Linux x86_64"
+  },
+  "ckey_sha": "ede38f57aa1a20c456b1858f4fccd919e98ef269",
+  "ckey_software_version": "0.1.0-build.85",
+  "harness_sha": "0217e28a27324ed739aef3f725797bd0e3865f38",
+  "prng": "ckt-prng-v1(xoshiro256**/splitmix64/fnv1a-stream)",
+  "recov_thresholds": {
+   "marginal": {
+    "byte_err_gt": "ecc",
+    "dprime_lt": 3.0,
+    "ppm_min_lt": 2.0
+   },
+   "unrecoverable": {
+    "byte_err_gt": "2*ecc",
+    "cropped": true,
+    "dprime_lt": 1.0,
+    "mtf_contrast_lt": 0.01,
+    "ppm_min_lt": 1.0
+   }
+  },
+  "recoverability": "recov-v2",
+  "schema": "ckt-case-v1",
+  "sim": "ckt-sim-v2",
+  "worker": "ckt-worker-v1"
+ },
+ "worker_sha256": "39cee7dafd7c6a00274763b1061775497ff497200ee4e3b92bf8f7fe0f01cf79"
+}
