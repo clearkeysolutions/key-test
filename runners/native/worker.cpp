@@ -4,6 +4,8 @@
 //              [--images DIR] [--fail-image-cap N] [--success-sample-ppm N]
 //              [--crosscheck-strata S01] [--trace-uri-prefix PFX]
 //   ckt_worker --repro LINE.json --out DIR       (regenerate one case's frames as PNG)
+//   ckt_worker --ml-sites-compare PLAN SITES.ckml OUT.jsonl (site model vs classical reading)
+//   ckt_worker --ml-sites PLAN OUT.bin              (site-model training records)
 //   ckt_worker --ml-compare PLAN MODEL.ckml|- OUT.jsonl (classical vs ML scan, identical frames)
 //   ckt_worker --ml-frames PLAN OUT.bin             (locator/quality training frames)
 //   ckt_worker --ml-export PLAN OUT.bin             (ML training records; see runners/native/ml.h)
@@ -497,6 +499,109 @@ int ml_frames(const std::string &plan_path, const std::string &out_path) {
 #endif
 
 #if defined(CKEY_SCAN_OPTION_ML)  // ML locator API (core build 87 and later)
+
+// Site model on identical frames: decode from the true corners and the full one-call scan,
+// each without and with the site model. One JSON line per case; wrong payloads reported.
+int ml_sites_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
+    std::ifstream mf(model_path, std::ios::binary); const std::vector<uint8_t> blob((std::istreambuf_iterator<char>(mf)), {});
+    if (ckey_ml_load_model(blob.data(), blob.size()) != CKEY_OK || ckey_ml_site_model_id() == 0) { std::fprintf(stderr, "ml-sites-compare: bad site model\n"); return 3; }
+    ckey_ml_load_model(nullptr, 0);
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-sites-compare: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        const bool valid = c.neg_kind == "none";
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"valid\":%d,\"v\":%u,\"print\":%d,\"ppm\":%.3f", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), valid ? 1 : 0,
+                     art.p0_version, c.p0_layout == "print" ? 1 : 0, f.phys.ppm_mean);
+        const auto right = [&](size_t len) { return valid && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
+        const auto mirror_ok = [&](size_t len) { return c.neg_kind == "mirror" && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
+        for (int arm = 0; arm < 2; ++arm) {
+            if (arm == 1) ckey_ml_load_model(blob.data(), blob.size()); else ckey_ml_load_model(nullptr, 0);
+            const char *tag = arm ? "ml" : "classical";
+            if (f.gt_valid) {
+                size_t len = 0; uint32_t v = 0, l = 0; ckey_diagnostics d{};
+                const auto t0 = std::chrono::steady_clock::now();
+                const ckey_status st = ckey_decode_scalable_gray8(f.gray.data(), f.w, f.h, f.w, f.gt, payload.data(), payload.size(), &len, &v, &l, &d);
+                const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                const bool ok = st == CKEY_OK && right(len), wrong = st == CKEY_OK && !ok && !mirror_ok(len);
+                std::fprintf(out, ",\"gtq_%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d,\"erasures\":%u}", tag, ok ? 1 : 0, wrong ? 1 : 0, ms,
+                             st == CKEY_OK && std::strstr(d.message, "ML site") ? 1 : 0, d.erasures_used);
+            }
+            ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE;
+            ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
+            const auto t0 = std::chrono::steady_clock::now();
+            const ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &res);
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            const bool ok = st == CKEY_OK && right(res.payload_length), wrong = st == CKEY_OK && !ok && !mirror_ok(res.payload_length);
+            std::fprintf(out, ",\"scan_%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d}", tag, ok ? 1 : 0, wrong ? 1 : 0, ms, st == CKEY_OK && std::strstr(res.message, "ML site") ? 1 : 0);
+        }
+        ckey_ml_load_model(nullptr, 0);
+        std::fprintf(out, "}\n"); std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+
+// ML site-model training records (variable length, little-endian):
+//   "CKMS", u32 version=1, u8 case_hash[16], u8 stratum, p0_version, layout, dark, gtq_ok, pad[3],
+//   f32 ppm, f32 jitter_modules, u32 side, u32 sites, u8 px[side*side],
+//   per site: u16 x, u16 y (canonical units * 64), u8 kind, u8 printed.
+// The field is rectified through the true corners plus Gaussian corner noise
+// (sigma = jitter, in module pitches), because the decoder's corners are never exact.
+int ml_sites_export(const std::string &plan_path, const std::string &out_path) {
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "ab");
+    if (!plan || !out) { std::fprintf(stderr, "ml-sites: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; size_t n = 0;
+    std::vector<uint8_t> px(2048 * 2048), kind, printed; std::vector<float> xy;
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code || c.neg_kind != "none") continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty() || !art.has_p0) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        if (!f.gt_valid) continue;
+        const std::string ch = Sha256::of(c.case_id.data(), c.case_id.size());
+        uint8_t hash[16]; for (int k = 0; k < 16; ++k) hash[k] = static_cast<uint8_t>(std::stoi(ch.substr(2 * k, 2), nullptr, 16));
+        // Corner noise from the case hash (deterministic).
+        uint64_t st = 0; for (int k = 0; k < 8; ++k) st = st << 8 | hash[k];
+        auto unit = [&]() { st = st * 6364136223846793005ull + 1442695040888963407ull; return ((st >> 11) & ((1ull << 53) - 1)) / 9007199254740992.0; };
+        auto gauss = [&]() { const double u = std::max(1e-12, unit()), v = unit(); return std::sqrt(-2 * std::log(u)) * std::cos(6.283185307179586 * v); };
+        const double jitter = unit() < 0.2 ? 0.0 : 0.3 * unit();
+        const double side_px = std::hypot(f.gt[2] - f.gt[0], f.gt[3] - f.gt[1]);
+        const double module_px = side_px / std::max(1u, ckey_scalable_modules_across(art.p0_version));
+        double q[8]; for (int k = 0; k < 8; ++k) q[k] = f.gt[k] + gauss() * jitter * module_px;
+        uint32_t side = 0; int dark = 1;
+        if (ckey_ml_rectify_gray8(f.gray.data(), f.w, f.h, f.w, q, art.p0_version, 2, 8, px.data(), px.size(), &side, &dark) != CKEY_OK) continue;
+        size_t sites = 0;
+        ckey_ml_site_map(&art.p0, nullptr, nullptr, nullptr, 0, &sites);
+        xy.resize(2 * sites); kind.resize(sites); printed.resize(sites);
+        if (ckey_ml_site_map(&art.p0, xy.data(), kind.data(), printed.data(), sites, &sites) != CKEY_OK) continue;
+        std::vector<uint8_t> pl;
+        const uint8_t gtq = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload;
+        const uint32_t magic = 0x534D4B43, version = 1;
+        const uint8_t meta[8] = {static_cast<uint8_t>(stratum_num(c.stratum)), static_cast<uint8_t>(art.p0_version), static_cast<uint8_t>(art.p0.layout), static_cast<uint8_t>(dark), gtq, 0, 0, 0};
+        const float ppm = static_cast<float>(f.phys.ppm_mean), jit = static_cast<float>(jitter);
+        const uint32_t ns = static_cast<uint32_t>(sites);
+        std::fwrite(&magic, 4, 1, out); std::fwrite(&version, 4, 1, out); std::fwrite(hash, 16, 1, out); std::fwrite(meta, 8, 1, out);
+        std::fwrite(&ppm, 4, 1, out); std::fwrite(&jit, 4, 1, out); std::fwrite(&side, 4, 1, out); std::fwrite(&ns, 4, 1, out);
+        std::fwrite(px.data(), 1, static_cast<size_t>(side) * side, out);
+        for (size_t i = 0; i < sites; ++i) {
+            const uint16_t x = static_cast<uint16_t>(std::lround(std::clamp(xy[2 * i], 0.0f, 29.0f) * 64)), y = static_cast<uint16_t>(std::lround(std::clamp(xy[2 * i + 1], 0.0f, 29.0f) * 64));
+            std::fwrite(&x, 2, 1, out); std::fwrite(&y, 2, 1, out); std::fwrite(&kind[i], 1, 1, out); std::fwrite(&printed[i], 1, 1, out);
+        }
+        ++n;
+    }
+    std::fclose(out);
+    std::fprintf(stderr, "ml-sites: %zu records\n", n);
+    return 0;
+}
 // Classical one-call scan vs ML proposals vs ML + gate on identical frames.
 // One JSON line per case. A wrong payload in any arm is reported (and must stay 0).
 int ml_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
@@ -618,6 +723,8 @@ int main(int argc, char **argv) {
 #endif
 #if defined(CKEY_SCAN_OPTION_ML)
         if (a == "--ml-compare" && i + 3 < argc) return ml_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
+        if (a == "--ml-sites" && i + 2 < argc) return ml_sites_export(argv[i + 1], argv[i + 2]);
+        if (a == "--ml-sites-compare" && i + 3 < argc) return ml_sites_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
 #endif
         if (a == "--ml-eval" && i + 3 < argc) return ml_eval(argv[i + 1], argv[i + 2], argv[i + 3]);
         if (a == "--plan") opt.plan = next();
