@@ -210,7 +210,7 @@ def evaluate(model, recs, dev, limit=300):
             "site_err_ring": errs[2][0] / max(1, errs[2][1]), "fields_under_15pct": fits / max(1, n)}
 
 
-def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: int, width: float):
+def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: int, width: float, hard_weight: float = 1.0):
     torch.manual_seed(0)
     dev = pick_device()
     out.mkdir(parents=True, exist_ok=True)
@@ -219,7 +219,12 @@ def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: in
     print(f"device {dev}; {len(recs)} fields: {len(tr)} train, {len(va)} validation", flush=True)
     model = SiteNet(width).to(dev)
     print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
-    dl = torch.utils.data.DataLoader(Tiles(tr, True), batch_size=batch, shuffle=True, num_workers=workers, drop_last=True, persistent_workers=workers > 0)
+    # Fields the classical reader cannot decode even from the true corners are where the
+    # model has to earn its place: sample them hard_weight times as often.
+    weights = torch.tensor([hard_weight if not r[5]["gtq"] else 1.0 for r in tr], dtype=torch.double)
+    sampler = torch.utils.data.WeightedRandomSampler(weights, num_samples=len(tr), replacement=True)
+    print(f"hard fields (classical fails from true corners): {sum(1 for r in tr if not r[5]['gtq'])} of {len(tr)}, weight {hard_weight}", flush=True)
+    dl = torch.utils.data.DataLoader(Tiles(tr, True), batch_size=batch, sampler=sampler, num_workers=workers, drop_last=True, persistent_workers=workers > 0)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=max(1, epochs * len(dl)), pct_start=0.05)
     log, best = [], None
@@ -286,10 +291,11 @@ def main():
     t.add_argument("--epochs", type=int, default=20); t.add_argument("--batch", type=int, default=32)
     t.add_argument("--lr", type=float, default=3e-3); t.add_argument("--workers", type=int, default=4)
     t.add_argument("--width", type=float, default=1.0)
+    t.add_argument("--hard-weight", type=float, default=1.0, help="oversampling of fields the classical reader fails")
     e = sub.add_parser("export"); e.add_argument("model", type=Path); e.add_argument("out", type=Path)
     a = ap.parse_args()
     if a.cmd == "train":
-        train(a.data, a.out, a.epochs, a.batch, a.lr, a.workers, a.width)
+        train(a.data, a.out, a.epochs, a.batch, a.lr, a.workers, a.width, a.hard_weight)
     else:
         export(a.model, a.out)
 
