@@ -500,12 +500,21 @@ int ml_frames(const std::string &plan_path, const std::string &out_path) {
 
 #if defined(CKEY_SCAN_OPTION_ML)  // ML locator API (core build 87 and later)
 
+// No ML models at all (built-ins included) where the core supports it.
+static void ml_none() {
+#if defined(CKEY_ML_HAS_CLEAR)
+    ckey_ml_clear_models();
+#else
+    ckey_ml_load_model(nullptr, 0);
+#endif
+}
+
 // Site model on identical frames: decode from the true corners and the full one-call scan,
 // each without and with the site model. One JSON line per case; wrong payloads reported.
 int ml_sites_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
     std::ifstream mf(model_path, std::ios::binary); const std::vector<uint8_t> blob((std::istreambuf_iterator<char>(mf)), {});
     if (ckey_ml_load_model(blob.data(), blob.size()) != CKEY_OK || ckey_ml_site_model_id() == 0) { std::fprintf(stderr, "ml-sites-compare: bad site model\n"); return 3; }
-    ckey_ml_load_model(nullptr, 0);
+    ml_none();
     std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
     if (!plan || !out) { std::fprintf(stderr, "ml-sites-compare: cannot open files\n"); return 3; }
     Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
@@ -522,7 +531,7 @@ int ml_sites_compare(const std::string &plan_path, const std::string &model_path
         const auto right = [&](size_t len) { return valid && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
         const auto mirror_ok = [&](size_t len) { return c.neg_kind == "mirror" && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
         for (int arm = 0; arm < 2; ++arm) {
-            if (arm == 1) ckey_ml_load_model(blob.data(), blob.size()); else ckey_ml_load_model(nullptr, 0);
+            if (arm == 1) { ml_none(); ckey_ml_load_model(blob.data(), blob.size()); } else ml_none();
             const char *tag = arm ? "ml" : "classical";
             if (f.gt_valid) {
                 size_t len = 0; uint32_t v = 0, l = 0; ckey_diagnostics d{};
@@ -541,7 +550,7 @@ int ml_sites_compare(const std::string &plan_path, const std::string &model_path
             const bool ok = st == CKEY_OK && right(res.payload_length), wrong = st == CKEY_OK && !ok && !mirror_ok(res.payload_length);
             std::fprintf(out, ",\"scan_%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d}", tag, ok ? 1 : 0, wrong ? 1 : 0, ms, st == CKEY_OK && std::strstr(res.message, "ML site") ? 1 : 0);
         }
-        ckey_ml_load_model(nullptr, 0);
+        ml_none();
         std::fprintf(out, "}\n"); std::fflush(out);
     }
     std::fclose(out);
@@ -604,7 +613,188 @@ int ml_sites_export(const std::string &plan_path, const std::string &out_path) {
 }
 // Classical one-call scan vs ML proposals vs ML + gate on identical frames.
 // One JSON line per case. A wrong payload in any arm is reported (and must stay 0).
+
+#if defined(CKEY_SCAN_VERSION_HINT)
+// Ceiling of the version hint: the full scan without and with the true version as the
+// hint (the best a density estimate could do). No ML models in either arm.
+int ml_hint_compare(const std::string &plan_path, const std::string &out_path) {
+    ml_none();
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-hint-compare: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        const bool valid = c.neg_kind == "none";
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"valid\":%d,\"v\":%u,\"print\":%d", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), valid ? 1 : 0, art.p0_version, c.p0_layout == "print" ? 1 : 0);
+        for (int arm = 0; arm < 2; ++arm) {
+            ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE;
+            if (arm) o.flags |= CKEY_SCAN_VERSION_HINT(art.p0_version);
+            ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
+            const auto t0 = std::chrono::steady_clock::now();
+            const ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &res);
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            const bool ok = st == CKEY_OK && valid && res.payload_length == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin());
+            const bool mirror_ok = c.neg_kind == "mirror" && st == CKEY_OK && res.payload_length == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin());
+            std::fprintf(out, ",\"%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f}", arm ? "hint" : "classical", ok ? 1 : 0, (st == CKEY_OK && !ok && !mirror_ok) ? 1 : 0, ms);
+        }
+        std::fprintf(out, "}\n"); std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+#endif
+
+
+#if defined(CKEY_ML_HAS_CLEAR)
+// ---- corner refiner records -----------------------------------------------------------
+// Homography canonical (0,0),(29,0),(29,29),(0,29) -> quad, and its inverse mapping.
+static bool homography_from(const double q[8], double H[9]) {
+    const double src[8] = {0, 0, 29, 0, 29, 29, 0, 29};
+    double A[8][9];
+    for (int k = 0; k < 4; ++k) {
+        const double x = src[2 * k], y = src[2 * k + 1], u = q[2 * k], v = q[2 * k + 1];
+        double r1[9] = {x, y, 1, 0, 0, 0, -u * x, -u * y, u}, r2[9] = {0, 0, 0, x, y, 1, -v * x, -v * y, v};
+        std::copy(r1, r1 + 9, A[2 * k]); std::copy(r2, r2 + 9, A[2 * k + 1]);
+    }
+    for (int c = 0; c < 8; ++c) {
+        int p = c; for (int r = c + 1; r < 8; ++r) if (std::abs(A[r][c]) > std::abs(A[p][c])) p = r;
+        if (std::abs(A[p][c]) < 1e-12) return false;
+        std::swap(A[c], A[p]);
+        for (int r = 0; r < 8; ++r) if (r != c) { const double f = A[r][c] / A[c][c]; for (int j = c; j < 9; ++j) A[r][j] -= f * A[c][j]; }
+    }
+    for (int i = 0; i < 8; ++i) H[i] = A[i][8] / A[i][i];
+    H[8] = 1; return true;
+}
+static bool unmap(const double H[9], double u, double v, double &x, double &y) {
+    // Solve H [x y 1] ~ [u v 1].
+    const double a = H[0] - u * H[6], b = H[1] - u * H[7], c = u * H[8] - H[2];
+    const double d = H[3] - v * H[6], e = H[4] - v * H[7], f = v * H[8] - H[5];
+    const double det = a * e - b * d; if (std::abs(det) < 1e-12) return false;
+    x = (c * e - b * f) / det; y = (a * f - c * d) / det; return true;
+}
+
+//   "CKMR", u32 version=1, u8 case_hash[16], u8 stratum, p0_version, layout, gtq_ok, f32 sigma_modules,
+//   f32 target[8] (canonical units: true corner i in the given corners' frame minus canonical corner i),
+//   u8 px[128*128] (canonical [-3, 32]^2 through the given corners)
+constexpr uint32_t kRefineSide = 128;
+int ml_refine_export(const std::string &plan_path, const std::string &out_path) {
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "ab");
+    if (!plan || !out) { std::fprintf(stderr, "ml-refine: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; size_t n = 0; std::vector<uint8_t> px(kRefineSide * kRefineSide);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code || c.neg_kind != "none") continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty() || !art.has_p0) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        if (!f.gt_valid) continue;
+        const std::string ch = Sha256::of(c.case_id.data(), c.case_id.size());
+        uint8_t hash[16]; for (int k = 0; k < 16; ++k) hash[k] = static_cast<uint8_t>(std::stoi(ch.substr(2 * k, 2), nullptr, 16));
+        uint64_t st = 0; for (int k = 0; k < 8; ++k) st = st << 8 | hash[k];
+        auto unit = [&]() { st = st * 6364136223846793005ull + 1442695040888963407ull; return ((st >> 11) & ((1ull << 53) - 1)) / 9007199254740992.0; };
+        auto gauss = [&]() { const double u = std::max(1e-12, unit()), v = unit(); return std::sqrt(-2 * std::log(u)) * std::cos(6.283185307179586 * v); };
+        const double side_px = std::hypot(f.gt[2] - f.gt[0], f.gt[3] - f.gt[1]);
+        const double module_px = side_px / std::max(1u, ckey_scalable_modules_across(art.p0_version));
+        const double sigma = 0.2 + 1.3 * unit();
+        double p[8];
+        for (int k = 0; k < 8; ++k) p[k] = f.gt[k] + gauss() * sigma * module_px;
+        if (unit() < 0.3) {   // a global error too: scale and rotation about the centre
+            double cx = 0, cy = 0; for (int k = 0; k < 4; ++k) { cx += p[2 * k] / 4; cy += p[2 * k + 1] / 4; }
+            const double s = 1 + 0.06 * gauss(), a = 0.03 * gauss();
+            for (int k = 0; k < 4; ++k) { const double x = p[2 * k] - cx, y = p[2 * k + 1] - cy; p[2 * k] = cx + s * (x * std::cos(a) - y * std::sin(a)); p[2 * k + 1] = cy + s * (x * std::sin(a) + y * std::cos(a)); }
+        }
+        // Any corner order and winding, as the decoder may be handed.
+        const int shift = static_cast<int>(unit() * 4) & 3; const bool reverse = unit() < 0.5;
+        double q[8], g[8];
+        for (int k = 0; k < 4; ++k) {
+            const int src = reverse ? (shift - k + 8) % 4 : (shift + k) % 4;
+            q[2 * k] = p[2 * src]; q[2 * k + 1] = p[2 * src + 1]; g[2 * k] = f.gt[2 * src]; g[2 * k + 1] = f.gt[2 * src + 1];
+        }
+        double H[9]; if (!homography_from(q, H)) continue;
+        float target[8]; bool ok = true;
+        const double canon[8] = {0, 0, 29, 0, 29, 29, 0, 29};
+        for (int k = 0; k < 4 && ok; ++k) { double x, y; ok = unmap(H, g[2 * k], g[2 * k + 1], x, y); target[2 * k] = static_cast<float>(x - canon[2 * k]); target[2 * k + 1] = static_cast<float>(y - canon[2 * k + 1]); }
+        if (!ok) continue;
+        if (ckey_ml_rectify_region_gray8(f.gray.data(), f.w, f.h, f.w, q, -3.0, -3.0, 35.0, kRefineSide, px.data(), px.size()) != CKEY_OK) continue;
+        std::vector<uint8_t> pl;
+        ml_none();
+        const uint8_t gtq = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload;
+        const uint32_t magic = 0x524D4B43, version = 1;
+        const uint8_t meta[4] = {static_cast<uint8_t>(stratum_num(c.stratum)), static_cast<uint8_t>(art.p0_version), static_cast<uint8_t>(art.p0.layout), gtq};
+        const float sg = static_cast<float>(sigma);
+        std::fwrite(&magic, 4, 1, out); std::fwrite(&version, 4, 1, out); std::fwrite(hash, 16, 1, out); std::fwrite(meta, 4, 1, out);
+        std::fwrite(&sg, 4, 1, out); std::fwrite(target, 4, 8, out); std::fwrite(px.data(), 1, px.size(), out);
+        ++n;
+    }
+    std::fclose(out);
+    std::fprintf(stderr, "ml-refine: %zu records\n", n);
+    return 0;
+}
+
+// The refiner on identical frames: decode from perturbed true corners (the refiner's
+// direct job) and the full scan, without and with the refiner. No other ML model.
+int ml_refine_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
+    std::ifstream mf(model_path, std::ios::binary); const std::vector<uint8_t> blob((std::istreambuf_iterator<char>(mf)), {});
+    ml_none();
+    if (ckey_ml_load_model(blob.data(), blob.size()) != CKEY_OK || ckey_ml_refiner_model_id() == 0) { std::fprintf(stderr, "ml-refine-compare: bad refiner\n"); return 3; }
+    ml_none();
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-refine-compare: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        const bool valid = c.neg_kind == "none";
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"valid\":%d,\"v\":%u,\"print\":%d", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), valid ? 1 : 0, art.p0_version, c.p0_layout == "print" ? 1 : 0);
+        const auto right = [&](size_t len) { return valid && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
+        const auto mirror_ok = [&](size_t len) { return c.neg_kind == "mirror" && len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
+        // Perturbed true corners: 0.6 module per corner (deterministic per case).
+        double pq[8]; bool have_pq = f.gt_valid && art.has_p0;
+        if (have_pq) {
+            uint64_t s = 0x9e3779b97f4a7c15ull; for (char ch : c.case_id) s = (s ^ static_cast<uint8_t>(ch)) * 1099511628211ull;
+            auto unit = [&]() { s = s * 6364136223846793005ull + 1442695040888963407ull; return ((s >> 11) & ((1ull << 53) - 1)) / 9007199254740992.0; };
+            const double mp = std::hypot(f.gt[2] - f.gt[0], f.gt[3] - f.gt[1]) / std::max(1u, ckey_scalable_modules_across(art.p0_version));
+            for (int k = 0; k < 8; ++k) { const double u = std::max(1e-12, unit()), v = unit(); pq[k] = f.gt[k] + std::sqrt(-2 * std::log(u)) * std::cos(6.283185307179586 * v) * 0.6 * mp; }
+        }
+        for (int arm = 0; arm < 2; ++arm) {
+            if (arm) { ml_none(); ckey_ml_load_model(blob.data(), blob.size()); } else ml_none();
+            const char *tag = arm ? "ml" : "classical";
+            if (have_pq) {
+                size_t len = 0; uint32_t v = 0, l = 0; ckey_diagnostics d{};
+                const auto t0 = std::chrono::steady_clock::now();
+                const ckey_status st = ckey_decode_scalable_gray8(f.gray.data(), f.w, f.h, f.w, pq, payload.data(), payload.size(), &len, &v, &l, &d);
+                const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                const bool ok = st == CKEY_OK && right(len);
+                std::fprintf(out, ",\"pq_%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d}", tag, ok ? 1 : 0, (st == CKEY_OK && !ok && !mirror_ok(len)) ? 1 : 0, ms, st == CKEY_OK && std::strstr(d.message, "ML corners") ? 1 : 0);
+            }
+            ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE;
+            ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
+            const auto t0 = std::chrono::steady_clock::now();
+            const ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &res);
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            const bool ok = st == CKEY_OK && right(res.payload_length);
+            std::fprintf(out, ",\"scan_%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d}", tag, ok ? 1 : 0, (st == CKEY_OK && !ok && !mirror_ok(res.payload_length)) ? 1 : 0, ms, st == CKEY_OK && std::strstr(res.message, "ML corners") ? 1 : 0);
+        }
+        ml_none();
+        std::fprintf(out, "}\n"); std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+#endif
+
 int ml_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
+    ml_none();   // the arms differ only by the locator: no site model in any of them
     if (model_path != "-") {
         std::ifstream mf(model_path, std::ios::binary); std::vector<uint8_t> blob((std::istreambuf_iterator<char>(mf)), {});
         if (ckey_ml_load_model(blob.data(), blob.size()) != CKEY_OK) { std::fprintf(stderr, "ml-compare: bad model\n"); return 3; }
@@ -725,6 +915,13 @@ int main(int argc, char **argv) {
         if (a == "--ml-compare" && i + 3 < argc) return ml_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
         if (a == "--ml-sites" && i + 2 < argc) return ml_sites_export(argv[i + 1], argv[i + 2]);
         if (a == "--ml-sites-compare" && i + 3 < argc) return ml_sites_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
+#if defined(CKEY_ML_HAS_CLEAR)
+        if (a == "--ml-refine" && i + 2 < argc) return ml_refine_export(argv[i + 1], argv[i + 2]);
+        if (a == "--ml-refine-compare" && i + 3 < argc) return ml_refine_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
+#endif
+#if defined(CKEY_SCAN_VERSION_HINT)
+        if (a == "--ml-hint-compare" && i + 2 < argc) return ml_hint_compare(argv[i + 1], argv[i + 2]);
+#endif
 #endif
         if (a == "--ml-eval" && i + 3 < argc) return ml_eval(argv[i + 1], argv[i + 2], argv[i + 3]);
         if (a == "--plan") opt.plan = next();

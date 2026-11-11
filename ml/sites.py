@@ -143,9 +143,9 @@ class Block(nn.Module):
 class SiteNet(nn.Module):
     """U-Net-like encoder at full, /2, /4, /8 resolution; output at /2 (one logit per
     module cell) via upsample-add. About 0.9k multiply-adds per input sample."""
-    def __init__(self, width: float = 1.0):
+    def __init__(self, width: float = 1.0, channels: int = 1):
         super().__init__()
-        self.width = width
+        self.width, self.channels = width, channels
         W = [max(8, int(round(c * width / 4)) * 4) for c in (8, 24, 32, 48)]
         blocks = (1, 2, 2)
         self.stem = nn.Sequential(ConvBN(1, W[0], 3))
@@ -154,7 +154,8 @@ class SiteNet(nn.Module):
             self.down.append(nn.Sequential(ConvBN(a, a, 3, 2, groups=a), ConvBN(a, b, 1), *[Block(b) for _ in range(nb)]))
         fpn = W[1]
         self.lat = nn.ModuleList([nn.Identity()] + [ConvBN(c, fpn, 1, act=False) for c in W[1:]])
-        self.head = nn.Sequential(ConvBN(fpn, fpn, 3, groups=fpn), ConvBN(fpn, fpn, 1), nn.Conv2d(fpn, 1, 1))
+        # Channel 0: ink logit. Channel 1 (optional): logit that channel 0 is wrong here.
+        self.head = nn.Sequential(ConvBN(fpn, fpn, 3, groups=fpn), ConvBN(fpn, fpn, 1), nn.Conv2d(fpn, channels, 1))
 
     def forward(self, x):
         f = [self.stem(x)]
@@ -174,7 +175,8 @@ def sample_logits(out, S, stride: int = 2):
     gx = S[:, :, 0] / (W * stride) * 2 - 1
     gy = S[:, :, 1] / (H * stride) * 2 - 1
     grid = torch.stack([gx, gy], -1)[:, :, None, :]
-    return F.grid_sample(out, grid, mode="bilinear", padding_mode="border", align_corners=False)[:, 0, :, 0]
+    v = F.grid_sample(out, grid, mode="bilinear", padding_mode="border", align_corners=False)[:, :, :, 0]  # (B, C, N)
+    return v[:, 0] if out.shape[1] == 1 else v
 
 
 # ------------------------------------------------------------------------- train
@@ -200,7 +202,8 @@ def evaluate(model, recs, dev, limit=300):
             S = torch.zeros(1, len(sites), 4, device=dev)
             S[0, :, 0] = torch.from_numpy(sites["x"].astype(np.float32) / 64 / spacing)
             S[0, :, 1] = torch.from_numpy(sites["y"].astype(np.float32) / 64 / spacing)
-            lg = sample_logits(out, S)[0].cpu().numpy()
+            lg = sample_logits(out, S)
+            lg = (lg[:, 0] if lg.dim() == 3 else lg)[0].cpu().numpy()
             wrong = (lg > 0) != (sites["p"] > 0)
             for k in (0, 1, 2):
                 m = sites["k"] == k
@@ -210,14 +213,14 @@ def evaluate(model, recs, dev, limit=300):
             "site_err_ring": errs[2][0] / max(1, errs[2][1]), "fields_under_15pct": fits / max(1, n)}
 
 
-def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: int, width: float, hard_weight: float = 1.0):
+def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: int, width: float, hard_weight: float = 1.0, doubt: bool = False):
     torch.manual_seed(0)
     dev = pick_device()
     out.mkdir(parents=True, exist_ok=True)
     recs = index_records(sorted(glob.glob(str(data / "*.bin"))))
     tr, va = split(recs)
     print(f"device {dev}; {len(recs)} fields: {len(tr)} train, {len(va)} validation", flush=True)
-    model = SiteNet(width).to(dev)
+    model = SiteNet(width, 2 if doubt else 1).to(dev)
     print("parameters", sum(p.numel() for p in model.parameters()), flush=True)
     # Fields the classical reader cannot decode even from the true corners are where the
     # model has to earn its place: sample them hard_weight times as often.
@@ -234,13 +237,18 @@ def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: in
             x, S = x.to(dev), S.to(dev)
             lg = sample_logits(model(x), S)
             m = S[:, :, 3]
-            loss = (F.binary_cross_entropy_with_logits(lg, S[:, :, 2], reduction="none") * m).sum() / m.sum().clamp(min=1)
+            ink = lg[:, 0] if doubt else lg
+            loss = (F.binary_cross_entropy_with_logits(ink, S[:, :, 2], reduction="none") * m).sum() / m.sum().clamp(min=1)
+            if doubt:
+                # The doubt channel learns where the ink channel is wrong (its own mistakes).
+                wrong = ((ink.detach() > 0).float() != S[:, :, 2]).float()
+                loss = loss + 0.5 * (F.binary_cross_entropy_with_logits(lg[:, 1], wrong, reduction="none") * m).sum() / m.sum().clamp(min=1)
             opt.zero_grad(); loss.backward(); opt.step(); sched.step()
             tot += loss.item(); nb += 1
         ev = evaluate(model, va, dev)
         row = {"epoch": ep + 1, "sec": round(time.time() - t0), "loss": round(tot / max(1, nb), 4), **{k: round(v, 4) for k, v in ev.items()}}
         log.append(row); print(json.dumps(row), flush=True)
-        sd = {"width": width, "state": {k: v.cpu() for k, v in model.state_dict().items()}}
+        sd = {"width": width, "channels": model.channels, "state": {k: v.cpu() for k, v in model.state_dict().items()}}
         torch.save(sd, out / "model.pt")
         score = -ev["site_err_grid"] - ev["site_err_ring"] - ev["site_err_dial"]
         if best is None or score >= best:
@@ -251,7 +259,7 @@ def train(data: Path, out: Path, epochs: int, batch: int, lr: float, workers: in
 # ------------------------------------------------------------------------- export
 def export(model_path: Path, out_path: Path, nominal_side: int = 64):
     ck = torch.load(model_path, map_location="cpu")
-    model = SiteNet(ck.get("width", 1.0)); model.load_state_dict(ck["state"]); model.eval()
+    model = SiteNet(ck.get("width", 1.0), ck.get("channels", 1)); model.load_state_dict(ck["state"]); model.eval()
     g = GraphWriter()
     def cb(seq, x):
         w, b, s_, gr, relu = fold(seq)
@@ -277,7 +285,7 @@ def export(model_path: Path, out_path: Path, nominal_side: int = 64):
     c = cb(model.head[1], c)
     hc = model.head[2]
     c = g.conv(c, hc.weight.detach().float(), hc.bias.detach().float(), 1, 1, False)
-    blob = b"CKML" + struct.pack("<6I", 2, g.nbuf, len(g.ops), nominal_side, 2, 1) + b"".join(g.ops)
+    blob = b"CKML" + struct.pack("<6I", 2, g.nbuf, len(g.ops), nominal_side, 2, model.channels) + b"".join(g.ops)
     out_path.write_bytes(blob)
     sha = hashlib.sha256(blob).hexdigest()
     print(f"wrote {out_path}: {len(g.ops)} ops, {g.nbuf} buffers, {len(blob)} bytes, sha256 {sha}")
@@ -292,10 +300,11 @@ def main():
     t.add_argument("--lr", type=float, default=3e-3); t.add_argument("--workers", type=int, default=4)
     t.add_argument("--width", type=float, default=1.0)
     t.add_argument("--hard-weight", type=float, default=1.0, help="oversampling of fields the classical reader fails")
+    t.add_argument("--doubt", action="store_true", help="second output: the logit that the ink reading is wrong (erasure hint)")
     e = sub.add_parser("export"); e.add_argument("model", type=Path); e.add_argument("out", type=Path)
     a = ap.parse_args()
     if a.cmd == "train":
-        train(a.data, a.out, a.epochs, a.batch, a.lr, a.workers, a.width, a.hard_weight)
+        train(a.data, a.out, a.epochs, a.batch, a.lr, a.workers, a.width, a.hard_weight, a.doubt)
     else:
         export(a.model, a.out)
 
