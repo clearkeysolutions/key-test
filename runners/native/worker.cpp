@@ -793,6 +793,62 @@ int ml_refine_compare(const std::string &plan_path, const std::string &model_pat
 }
 #endif
 
+
+#if defined(CKEY_ML_HAS_CLEAR)
+// Multi-frame on identical sequences: each case as 6 frames (mild hand shake, frame motion,
+// focus and exposure drift if the case has none). "any": some single frame decodes (a live
+// scanner retries every frame); "acc": the frame accumulator over the same frames. Each
+// without ML and with the built-in models.
+int ml_multiframe_compare(const std::string &plan_path, const std::string &out_path) {
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-multiframe-compare: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code || c.neg_kind != "none") continue;
+        c.frames = 6;
+        if (c.shake_px == 0) c.shake_px = 3.0;
+        if (c.frame_motion_px == 0) c.frame_motion_px = 1.0;
+        if (c.focus_drift == 0) c.focus_drift = 0.1;
+        if (c.exposure_drift == 0) c.exposure_drift = 0.05;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        std::vector<Frame> frames;
+        for (int i = 0; i < c.frames; ++i) frames.push_back(sim.run(c, art, nullptr, i, false));
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"v\":%u", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), art.p0_version);
+        const auto right = [&](size_t len) { return len == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()); };
+        for (int ml = 0; ml < 2; ++ml) {
+            if (ml) ckey_ml_load_model(nullptr, 0); else ml_none();
+            int any = -1, acc = -1, wrong = 0; double ms_any = 0, ms_acc = 0;
+            ckey_frame_accumulator *a = ckey_accumulator_create();
+            for (int i = 0; i < c.frames; ++i) {
+                const Frame &f = frames[static_cast<size_t>(i)];
+                ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE;
+                ckey_scan_result r{}; r.abi_version = CKEY_ABI_VERSION;
+                auto t0 = std::chrono::steady_clock::now();
+                ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &r);
+                if (any < 0) ms_any += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                if (st == CKEY_OK) { if (right(r.payload_length)) { if (any < 0) any = i; } else ++wrong; }
+                if (acc < 0) {
+                    ckey_scan_result ra{}; ra.abi_version = CKEY_ABI_VERSION;
+                    t0 = std::chrono::steady_clock::now();
+                    st = ckey_scan_frame_accumulate_gray8(f.gray.data(), f.w, f.h, f.w, &o, a, payload.data(), payload.size(), &ra);
+                    ms_acc += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+                    if (st == CKEY_OK) { if (right(ra.payload_length)) acc = i; else ++wrong; }
+                }
+            }
+            ckey_accumulator_destroy(a);
+            std::fprintf(out, ",\"%s\":{\"any\":%d,\"acc\":%d,\"wrong\":%d,\"ms_any\":%.1f,\"ms_acc\":%.1f}", ml ? "ml" : "classical", any, acc, wrong, ms_any, ms_acc);
+        }
+        ml_none();
+        std::fprintf(out, "}\n"); std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+#endif
+
 int ml_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
     ml_none();   // the arms differ only by the locator: no site model in any of them
     if (model_path != "-") {
@@ -918,6 +974,7 @@ int main(int argc, char **argv) {
 #if defined(CKEY_ML_HAS_CLEAR)
         if (a == "--ml-refine" && i + 2 < argc) return ml_refine_export(argv[i + 1], argv[i + 2]);
         if (a == "--ml-refine-compare" && i + 3 < argc) return ml_refine_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
+        if (a == "--ml-multiframe-compare" && i + 2 < argc) return ml_multiframe_compare(argv[i + 1], argv[i + 2]);
 #endif
 #if defined(CKEY_SCAN_VERSION_HINT)
         if (a == "--ml-hint-compare" && i + 2 < argc) return ml_hint_compare(argv[i + 1], argv[i + 2]);
