@@ -14,3 +14,6 @@ scripts/server/r2.env
 # Trained models are copied into evidence/ml by ./ckt export-evidence
 ml/models/*
 !ml/models/.gitkeep
+
+# ML locator pipeline data (ml/run_locator.sh): frames, venv, builds
+/data/

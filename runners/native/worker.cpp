@@ -4,6 +4,8 @@
 //              [--images DIR] [--fail-image-cap N] [--success-sample-ppm N]
 //              [--crosscheck-strata S01] [--trace-uri-prefix PFX]
 //   ckt_worker --repro LINE.json --out DIR       (regenerate one case's frames as PNG)
+//   ckt_worker --ml-compare PLAN MODEL.ckml|- OUT.jsonl (classical vs ML scan, identical frames)
+//   ckt_worker --ml-frames PLAN OUT.bin             (locator/quality training frames)
 //   ckt_worker --ml-export PLAN OUT.bin             (ML training records; see runners/native/ml.h)
 //   ckt_worker --ml-eval PLAN MODEL.bin OUT.jsonl     (classical vs ML vs hybrid on identical frames)
 //   ckt_worker --selftest | --print-schema | --print-config | --capacity-table
@@ -411,6 +413,134 @@ int ml_export(const std::string &plan_path, const std::string &out_path) {
     return 0;
 }
 
+
+#if defined(CKEY_SCAN_PROFILE_SCALABLE)  // ckey_scan_frame_gray8 (core build 86 and later)
+// ---- ML frame export (locator / quality network) -------------------------------------
+// One fixed-size record per case: the frame area-downscaled so its longer side is
+// kMlIn pixels, letterboxed (pad 128) into kMlIn x kMlIn, plus labels. Includes
+// negatives (no symbol). Labels: ground-truth field corners in input pixels (canonical
+// symbol order), version, layout, whether the production one-call scan decodes the full
+// frame, and whether the decoder reads it from the true corners.
+constexpr int kMlIn = 256;
+#pragma pack(push, 1)
+struct MlFrameRec {
+    uint32_t magic = 0x464D4B43;   // "CKMF"
+    uint32_t version = 1;
+    uint8_t case_hash[16]{};
+    uint8_t has_symbol = 0, scan_ok = 0, gtq_ok = 0, layout = 0;
+    uint8_t p0_version = 0, stratum = 0, neg = 0, phys = 0;   // phys: 0 recoverable 1 marginal 2 unrecoverable 3 n/a
+    float ppm = 0, scale = 0, off_x = 0, off_y = 0;           // input = (frame - 0) * scale + off
+    float scan_ms = 0;
+    uint16_t frame_w = 0, frame_h = 0;
+    float quad[8]{};
+    uint8_t img[kMlIn * kMlIn]{};
+};
+#pragma pack(pop)
+
+static void ml_downscale(const Frame &f, MlFrameRec &r) {
+    const double sc = static_cast<double>(kMlIn) / std::max(f.w, f.h);
+    const int ow = std::max(1, static_cast<int>(std::lround(f.w * sc))), oh = std::max(1, static_cast<int>(std::lround(f.h * sc)));
+    const int ox = (kMlIn - ow) / 2, oy = (kMlIn - oh) / 2;
+    std::memset(r.img, 128, sizeof r.img);
+    for (int y = 0; y < oh; ++y) {
+        const int y0 = static_cast<int>(y / sc), y1 = std::min(f.h, std::max(y0 + 1, static_cast<int>((y + 1) / sc)));
+        for (int x = 0; x < ow; ++x) {
+            const int x0 = static_cast<int>(x / sc), x1 = std::min(f.w, std::max(x0 + 1, static_cast<int>((x + 1) / sc)));
+            uint32_t acc = 0, n = 0;
+            for (int yy = y0; yy < y1; ++yy) for (int xx = x0; xx < x1; ++xx) { acc += f.gray[static_cast<size_t>(yy) * f.w + xx]; ++n; }
+            r.img[(oy + y) * kMlIn + ox + x] = static_cast<uint8_t>(acc / std::max<uint32_t>(1, n));
+        }
+    }
+    r.scale = static_cast<float>(sc); r.off_x = static_cast<float>(ox); r.off_y = static_cast<float>(oy);
+    r.frame_w = static_cast<uint16_t>(f.w); r.frame_h = static_cast<uint16_t>(f.h);
+}
+
+int ml_frames(const std::string &plan_path, const std::string &out_path) {
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "ab");
+    if (!plan || !out) { std::fprintf(stderr, "ml-frames: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; size_t n = 0, sym = 0, ok = 0;
+    std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        MlFrameRec r;
+        const std::string ch = Sha256::of(c.case_id.data(), c.case_id.size());
+        for (int k = 0; k < 16; ++k) r.case_hash[k] = static_cast<uint8_t>(std::stoi(ch.substr(2 * k, 2), nullptr, 16));
+        const bool valid = c.neg_kind == "none";
+        r.neg = !valid; r.layout = c.p0_layout == "print"; r.p0_version = static_cast<uint8_t>(art.p0_version);
+        r.stratum = static_cast<uint8_t>(stratum_num(c.stratum)); r.ppm = static_cast<float>(f.phys.ppm_mean);
+        r.phys = 3;
+        ml_downscale(f, r);
+        // Negatives that still draw a symbol-shaped thing (mirror, corruption) keep their
+        // geometry as "a symbol is here": the locator finds it, RS + CRC reject it.
+        r.has_symbol = f.gt_valid && c.neg_kind != "blank" && c.neg_kind != "foreign_grid";
+        if (f.gt_valid) for (int k = 0; k < 4; ++k) { r.quad[2 * k] = static_cast<float>(f.gt[2 * k] * r.scale + r.off_x); r.quad[2 * k + 1] = static_cast<float>(f.gt[2 * k + 1] * r.scale + r.off_y); }
+        ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE;
+        ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
+        const auto t0 = std::chrono::steady_clock::now();
+        const ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &res);
+        r.scan_ms = static_cast<float>(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count());
+        r.scan_ok = valid && st == CKEY_OK && res.payload_length == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin());
+        if (valid && f.gt_valid) { std::vector<uint8_t> pl; r.gtq_ok = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload; }
+        std::fwrite(&r, sizeof r, 1, out); ++n; sym += r.has_symbol; ok += r.scan_ok;
+    }
+    std::fclose(out);
+    std::fprintf(stderr, "ml-frames: %zu records, %zu with a symbol, %zu decoded by the scan\n", n, sym, ok);
+    return 0;
+}
+
+
+#endif
+
+#if defined(CKEY_SCAN_OPTION_ML)  // ML locator API (core build 87 and later)
+// Classical one-call scan vs ML proposals vs ML + gate on identical frames.
+// One JSON line per case. A wrong payload in any arm is reported (and must stay 0).
+int ml_compare(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
+    if (model_path != "-") {
+        std::ifstream mf(model_path, std::ios::binary); std::vector<uint8_t> blob((std::istreambuf_iterator<char>(mf)), {});
+        if (ckey_ml_load_model(blob.data(), blob.size()) != CKEY_OK) { std::fprintf(stderr, "ml-compare: bad model\n"); return 3; }
+    }
+    std::ifstream plan(plan_path); FILE *out = std::fopen(out_path.c_str(), "a");
+    if (!plan || !out) { std::fprintf(stderr, "ml-compare: cannot open files\n"); return 3; }
+    Simulator sim; std::string line; std::vector<uint8_t> payload(65536);
+    while (std::getline(plan, line)) {
+        if (line.empty()) continue;
+        CaseSpec c; try { c = parse_case(line); } catch (...) { continue; }
+        if (c.profile != "P0" || c.second_code) continue;
+        const SymbolArt art = build_symbol(c, 0);
+        if (!art.error.empty()) continue;
+        const Frame f = sim.run(c, art, nullptr, 0, false);
+        const bool valid = c.neg_kind == "none";
+        std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"valid\":%d,\"v\":%u,\"print\":%d,\"ppm\":%.3f", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), valid ? 1 : 0,
+                     art.p0_version, c.p0_layout == "print" ? 1 : 0, f.phys.ppm_mean);
+        if (valid && f.gt_valid) { std::vector<uint8_t> pl; const bool g = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload; std::fprintf(out, ",\"gtq\":%d", g ? 1 : 0); }
+        const uint32_t arms[3] = {0u, CKEY_SCAN_OPTION_ML, CKEY_SCAN_OPTION_ML | CKEY_SCAN_OPTION_ML_GATE};
+        const char *names[3] = {"classical", "ml", "ml_gate"};
+        for (int a = 0; a < 3; ++a) {
+            ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE; o.flags = arms[a];
+            ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
+            const auto t0 = std::chrono::steady_clock::now();
+            const ckey_status st = ckey_scan_frame_gray8(f.gray.data(), f.w, f.h, f.w, &o, payload.data(), payload.size(), &res);
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            const bool got = st == CKEY_OK;
+            const bool right = got && valid && res.payload_length == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin());
+            const bool wrong = got && !right && !(c.neg_kind == "mirror" && res.payload_length == art.payload.size() && std::equal(art.payload.begin(), art.payload.end(), payload.begin()));
+            std::fprintf(out, ",\"%s\":{\"ok\":%d,\"wrong\":%d,\"ms\":%.2f,\"ml\":%d}", names[a], right ? 1 : 0, wrong ? 1 : 0, ms, (res.flags & CKEY_SCAN_FLAG_ML) ? 1 : 0);
+        }
+        ckey_ml_detection det[3]; const size_t nd = ckey_ml_locate_gray8(f.gray.data(), f.w, f.h, f.w, 0.15, det, 3);
+        std::fprintf(out, ",\"ml_det\":%zu,\"ml_score\":%.3f,\"ml_quality\":%.3f,\"ml_version\":%.2f}\n", nd, nd ? det[0].score : 0.0, nd ? det[0].quality : 0.0, nd ? det[0].version : 0.0);
+        std::fflush(out);
+    }
+    std::fclose(out);
+    return 0;
+}
+
+#endif
+
 // Classical vs ML vs hybrid on identical frames. ML: predicted corners -> production decoder (RS + CRC gate).
 int ml_eval(const std::string &plan_path, const std::string &model_path, const std::string &out_path) {
     Mlp mlp; std::string err;
@@ -483,6 +613,12 @@ int main(int argc, char **argv) {
         if (a == "--print-config") { std::puts(config_json().c_str()); return 0; }
         if (a == "--capacity-table") { std::puts(capacity_table().c_str()); return 0; }
         if (a == "--ml-export" && i + 2 < argc) return ml_export(argv[i + 1], argv[i + 2]);
+#if defined(CKEY_SCAN_PROFILE_SCALABLE)
+        if (a == "--ml-frames" && i + 2 < argc) return ml_frames(argv[i + 1], argv[i + 2]);
+#endif
+#if defined(CKEY_SCAN_OPTION_ML)
+        if (a == "--ml-compare" && i + 3 < argc) return ml_compare(argv[i + 1], argv[i + 2], argv[i + 3]);
+#endif
         if (a == "--ml-eval" && i + 3 < argc) return ml_eval(argv[i + 1], argv[i + 2], argv[i + 3]);
         if (a == "--plan") opt.plan = next();
         else if (a == "--results") opt.results = next();
