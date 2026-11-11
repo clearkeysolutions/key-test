@@ -55,7 +55,8 @@ echo "== plans"
 echo "== exporting training frames ($JOBS in parallel; resumable)"
 mkdir -p "$DATA/frames"
 export W DATA
-ls "$DATA"/plan/shard-*.jsonl | xargs -P "$JOBS" -I{} sh -c 'n=$(basename {} .jsonl); [ -f "$DATA/frames/$n.done" ] || { rm -f "$DATA/frames/$n.bin"; "$W" --ml-frames {} "$DATA/frames/$n.bin" 2>>"$DATA/frames/$n.log" && touch "$DATA/frames/$n.done"; }'
+# One shard per argument (macOS xargs limits -I commands to 255 bytes).
+ls "$DATA"/plan/shard-*.jsonl | xargs -n 1 -P "$JOBS" sh -c 'n=$(basename "$1" .jsonl); [ -f "$DATA/frames/$n.done" ] || { rm -f "$DATA/frames/$n.bin"; "$W" --ml-frames "$1" "$DATA/frames/$n.bin" 2>>"$DATA/frames/$n.log" && touch "$DATA/frames/$n.done"; }' sh
 echo "   $(ls "$DATA"/frames/*.done | wc -l | tr -d ' ') shards done"
 
 echo "== training (width $WIDTH, $EPOCHS epochs)"
@@ -72,7 +73,7 @@ SHA=$("$PY" -m ml.locator export "$DATA/model/best.pt" "$OUT" | sed -n 's/.*sha2
 echo "== evaluation on a separate fresh-seed set (classical vs ML, identical frames)"
 mkdir -p "$DATA/eval"
 export OUT
-ls "$DATA"/evalplan/shard-*.jsonl | xargs -P "$JOBS" -I{} sh -c 'n=$(basename {} .jsonl); [ -f "$DATA/eval/$n.done" ] || { rm -f "$DATA/eval/$n.jsonl"; "$W" --ml-compare {} "$OUT" "$DATA/eval/$n.jsonl" && touch "$DATA/eval/$n.done"; }'
+ls "$DATA"/evalplan/shard-*.jsonl | xargs -n 1 -P "$JOBS" sh -c 'n=$(basename "$1" .jsonl); [ -f "$DATA/eval/$n.done" ] || { rm -f "$DATA/eval/$n.jsonl"; "$W" --ml-compare "$1" "$OUT" "$DATA/eval/$n.jsonl" && touch "$DATA/eval/$n.done"; }' sh
 "$PY" -m ml.compare_report "$DATA"/eval/*.jsonl --md "ml/locator-models/locator-$TAG.eval.md"
 
 "$PY" - "$OUT" "$SHA" "$TAG" "$WIDTH" "$CASES" "$EPOCHS" "$(git -C "$CKEY" rev-parse HEAD)" "$DATA/model/train_log.json" <<'PY'
