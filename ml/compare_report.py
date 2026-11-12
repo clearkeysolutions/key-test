@@ -10,7 +10,8 @@ import json
 import math
 from pathlib import Path
 
-ARMS = ("classical", "ml", "ml_gate")
+ARMS = ("classical", "ml", "ml_gate", "ml_after")
+LABELS = {"classical": "Classical", "ml": "ML proposals first", "ml_gate": "ML + gate", "ml_after": "ML after classical"}
 
 
 def wilson(k, n, z=1.96):
@@ -35,6 +36,8 @@ def quant(v, q):
 
 
 def summarise(rows):
+    global ARMS
+    ARMS = tuple(a for a in ARMS if rows and a in rows[0])
     out = {}
     valid = [r for r in rows if r["valid"]]
     recov = [r for r in valid if r.get("gtq")]
@@ -63,7 +66,7 @@ def summarise(rows):
 
 def markdown(s, n_rows):
     L = [f"# ML locator comparison ({n_rows} cases, identical frames)", "",
-         "| | Classical | ML proposals first | ML + gate |", "|---|---|---|---|"]
+         "| | " + " | ".join(LABELS[a] for a in ARMS) + " |", "|---" * (len(ARMS) + 1) + "|"]
     def row(label, f):
         L.append(f"| {label} | " + " | ".join(f(s[a]) for a in ARMS) + " |")
     row("Valid symbols decoded", lambda a: f"{pct(a['valid']['rate'])} ({a['valid']['decoded']}/{a['valid']['n']})")
@@ -74,9 +77,9 @@ def markdown(s, n_rows):
     row("Frames that did not decode, median / p95 (ms)", lambda a: f"{a['ms']['not_decoded_p50']:.0f} / {a['ms']['not_decoded_p95']:.0f}")
     d = s["dense_v25_31"]
     L.append("| Dense (v25-31), readable, decoded | " + " | ".join(f"{d[a][0]}/{d[a][1]}" for a in ARMS) + " |")
-    L += ["", f"Gained vs classical: ML {s['gained_vs_classical']['ml']}, ML + gate {s['gained_vs_classical']['ml_gate']}. "
-          f"Lost vs classical: ML {s['lost_vs_classical']['ml']}, ML + gate {s['lost_vs_classical']['ml_gate']}.", "",
-          "| Stratum (readable from true corners) | Classical | ML | ML + gate |", "|---|---|---|---|"]
+    L += ["", "Gained vs classical: " + ", ".join(f"{LABELS[a]} {s['gained_vs_classical'][a]}" for a in ARMS[1:]) + ". "
+          "Lost vs classical: " + ", ".join(f"{LABELS[a]} {s['lost_vs_classical'][a]}" for a in ARMS[1:]) + ".", "",
+          "| Stratum (readable from true corners) | " + " | ".join(LABELS[a] for a in ARMS) + " |", "|---" * (len(ARMS) + 1) + "|"]
     for st, v in s["by_stratum"].items():
         L.append(f"| {st} | " + " | ".join(f"{v[a][0]}/{v[a][1]}" for a in ARMS) + " |")
     return "\n".join(L) + "\n"

@@ -869,9 +869,16 @@ int ml_compare(const std::string &plan_path, const std::string &model_path, cons
         std::fprintf(out, "{\"case_id\":%s,\"stratum\":%s,\"valid\":%d,\"v\":%u,\"print\":%d,\"ppm\":%.3f", jstr(c.case_id).c_str(), jstr(c.stratum).c_str(), valid ? 1 : 0,
                      art.p0_version, c.p0_layout == "print" ? 1 : 0, f.phys.ppm_mean);
         if (valid && f.gt_valid) { std::vector<uint8_t> pl; const bool g = decode_with_quad(0, f.gray.data(), f.w, f.h, f.w, f.gt, pl) && pl == art.payload; std::fprintf(out, ",\"gtq\":%d", g ? 1 : 0); }
-        const uint32_t arms[3] = {0u, CKEY_SCAN_OPTION_ML, CKEY_SCAN_OPTION_ML | CKEY_SCAN_OPTION_ML_GATE};
-        const char *names[3] = {"classical", "ml", "ml_gate"};
-        for (int a = 0; a < 3; ++a) {
+#if defined(CKEY_SCAN_OPTION_ML_AFTER)
+        constexpr int kArms = 4;
+        const uint32_t arms[kArms] = {0u, CKEY_SCAN_OPTION_ML, CKEY_SCAN_OPTION_ML | CKEY_SCAN_OPTION_ML_GATE, CKEY_SCAN_OPTION_ML_AFTER};
+        const char *names[kArms] = {"classical", "ml", "ml_gate", "ml_after"};
+#else
+        constexpr int kArms = 3;
+        const uint32_t arms[kArms] = {0u, CKEY_SCAN_OPTION_ML, CKEY_SCAN_OPTION_ML | CKEY_SCAN_OPTION_ML_GATE};
+        const char *names[kArms] = {"classical", "ml", "ml_gate"};
+#endif
+        for (int a = 0; a < kArms; ++a) {
             ckey_scan_options o; ckey_scan_options_init(&o); o.profiles = CKEY_SCAN_PROFILE_SCALABLE; o.flags = arms[a];
             ckey_scan_result res{}; res.abi_version = CKEY_ABI_VERSION;
             const auto t0 = std::chrono::steady_clock::now();
