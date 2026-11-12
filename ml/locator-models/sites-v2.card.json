@@ -1,0 +1,199 @@
+{
+ "model": "ml/locator-models/sites-v2.ckml",
+ "sha256": "78f9fe7ba4b3f8ccdeba4d34ad7926afa73da06ae652876bda009b728fe417bf",
+ "tag": "v2",
+ "kind": "site model",
+ "doubt_channel": true,
+ "width": 2.5,
+ "architecture": "CKML v2 site model (ml/sites.py)",
+ "training_cases": 40000,
+ "epochs": 20,
+ "hard_field_weight": 3.0,
+ "plan_master_seed": "CKEY-ML/frames/sites-v2",
+ "eval_master_seed": "CKEY-ML/frames/sites-v2-eval",
+ "ckey_commit": "1685eadb0f19fccd1c84f0bfaa062575b1aa5e75",
+ "host": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+ "isolation": "Fresh seeds only: no campaign structured, adaptive or holdout case is used for training or evaluation.",
+ "train_log": [
+  {
+   "epoch": 1,
+   "sec": 48,
+   "loss": 0.6987,
+   "site_err_grid": 0.0752,
+   "site_err_dial": 0.1389,
+   "site_err_ring": 0.2506,
+   "fields_under_15pct": 0.7267
+  },
+  {
+   "epoch": 2,
+   "sec": 41,
+   "loss": 0.6024,
+   "site_err_grid": 0.0738,
+   "site_err_dial": 0.1269,
+   "site_err_ring": 0.2463,
+   "fields_under_15pct": 0.74
+  },
+  {
+   "epoch": 3,
+   "sec": 41,
+   "loss": 0.5857,
+   "site_err_grid": 0.0743,
+   "site_err_dial": 0.1234,
+   "site_err_ring": 0.245,
+   "fields_under_15pct": 0.7367
+  },
+  {
+   "epoch": 4,
+   "sec": 41,
+   "loss": 0.5783,
+   "site_err_grid": 0.0708,
+   "site_err_dial": 0.124,
+   "site_err_ring": 0.2473,
+   "fields_under_15pct": 0.7367
+  },
+  {
+   "epoch": 5,
+   "sec": 41,
+   "loss": 0.5654,
+   "site_err_grid": 0.0702,
+   "site_err_dial": 0.1151,
+   "site_err_ring": 0.2432,
+   "fields_under_15pct": 0.75
+  },
+  {
+   "epoch": 6,
+   "sec": 41,
+   "loss": 0.5635,
+   "site_err_grid": 0.0716,
+   "site_err_dial": 0.1182,
+   "site_err_ring": 0.2435,
+   "fields_under_15pct": 0.7467
+  },
+  {
+   "epoch": 7,
+   "sec": 41,
+   "loss": 0.5595,
+   "site_err_grid": 0.0687,
+   "site_err_dial": 0.1129,
+   "site_err_ring": 0.242,
+   "fields_under_15pct": 0.7533
+  },
+  {
+   "epoch": 8,
+   "sec": 41,
+   "loss": 0.5603,
+   "site_err_grid": 0.0678,
+   "site_err_dial": 0.1144,
+   "site_err_ring": 0.2421,
+   "fields_under_15pct": 0.75
+  },
+  {
+   "epoch": 9,
+   "sec": 41,
+   "loss": 0.554,
+   "site_err_grid": 0.0691,
+   "site_err_dial": 0.1127,
+   "site_err_ring": 0.2406,
+   "fields_under_15pct": 0.7567
+  },
+  {
+   "epoch": 10,
+   "sec": 41,
+   "loss": 0.5498,
+   "site_err_grid": 0.0681,
+   "site_err_dial": 0.1103,
+   "site_err_ring": 0.241,
+   "fields_under_15pct": 0.75
+  },
+  {
+   "epoch": 11,
+   "sec": 41,
+   "loss": 0.5477,
+   "site_err_grid": 0.0681,
+   "site_err_dial": 0.11,
+   "site_err_ring": 0.2409,
+   "fields_under_15pct": 0.7467
+  },
+  {
+   "epoch": 12,
+   "sec": 41,
+   "loss": 0.5518,
+   "site_err_grid": 0.068,
+   "site_err_dial": 0.1095,
+   "site_err_ring": 0.2408,
+   "fields_under_15pct": 0.75
+  },
+  {
+   "epoch": 13,
+   "sec": 41,
+   "loss": 0.5467,
+   "site_err_grid": 0.0697,
+   "site_err_dial": 0.1115,
+   "site_err_ring": 0.2401,
+   "fields_under_15pct": 0.74
+  },
+  {
+   "epoch": 14,
+   "sec": 41,
+   "loss": 0.5458,
+   "site_err_grid": 0.0669,
+   "site_err_dial": 0.1083,
+   "site_err_ring": 0.2395,
+   "fields_under_15pct": 0.7633
+  },
+  {
+   "epoch": 15,
+   "sec": 41,
+   "loss": 0.5453,
+   "site_err_grid": 0.068,
+   "site_err_dial": 0.1088,
+   "site_err_ring": 0.2399,
+   "fields_under_15pct": 0.7533
+  },
+  {
+   "epoch": 16,
+   "sec": 41,
+   "loss": 0.5417,
+   "site_err_grid": 0.0667,
+   "site_err_dial": 0.1076,
+   "site_err_ring": 0.2393,
+   "fields_under_15pct": 0.7667
+  },
+  {
+   "epoch": 17,
+   "sec": 41,
+   "loss": 0.5436,
+   "site_err_grid": 0.0668,
+   "site_err_dial": 0.1078,
+   "site_err_ring": 0.2391,
+   "fields_under_15pct": 0.76
+  },
+  {
+   "epoch": 18,
+   "sec": 41,
+   "loss": 0.5471,
+   "site_err_grid": 0.0671,
+   "site_err_dial": 0.1074,
+   "site_err_ring": 0.2392,
+   "fields_under_15pct": 0.7633
+  },
+  {
+   "epoch": 19,
+   "sec": 41,
+   "loss": 0.541,
+   "site_err_grid": 0.0676,
+   "site_err_dial": 0.1071,
+   "site_err_ring": 0.2391,
+   "fields_under_15pct": 0.7567
+  },
+  {
+   "epoch": 20,
+   "sec": 41,
+   "loss": 0.5434,
+   "site_err_grid": 0.0675,
+   "site_err_dial": 0.1076,
+   "site_err_ring": 0.2391,
+   "fields_under_15pct": 0.7567
+  }
+ ]
+}

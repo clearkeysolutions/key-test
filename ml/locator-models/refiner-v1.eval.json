@@ -1,0 +1,28 @@
+{
+ "pq": {
+  "n": 1800,
+  "decoded": {
+   "classical": 60,
+   "ml": 1180
+  },
+  "wrong": {
+   "classical": 0,
+   "ml": 0
+  },
+  "gained": 1120,
+  "lost": 0
+ },
+ "scan": {
+  "n": 1800,
+  "decoded": {
+   "classical": 1071,
+   "ml": 1140
+  },
+  "wrong": {
+   "classical": 0,
+   "ml": 0
+  },
+  "gained": 69,
+  "lost": 0
+ }
+}
